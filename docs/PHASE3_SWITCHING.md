@@ -99,25 +99,52 @@ Passing cases include:
 - pre-existing WRN profile collision rejected;
 - actual Claude config paths hard-disabled and byte-for-byte unchanged.
 
+## Durable recovery and WRN → WTW restoration
+
+The transition state root now persists a minimal WRN ownership baseline after successful activation.
+
+It records only:
+
+- whether `deploymentMode` existed before WRN and its prior value;
+- whether `appliedId` existed before WRN and its prior value;
+- activation catalogue release;
+- the SHA-256 of the WRN-owned profile.
+
+It does **not** persist a Claude desktop/meta snapshot, preference values, conversation/history state, Cowork state, or the local gateway bearer credential.
+
+Each in-flight transaction has a CurrentUser-DPAPI-protected journal plus exact pre-write backups for the three allowlisted files. A process/power-loss recovery pass classifies every target as expected, desired, or conflicting before taking recovery action.
+
+Fixture tests prove:
+
+- partial WTW → WRN interruption rolls back to exact WTW bytes;
+- an interruption after all activation writes finalizes WRN instead of undoing a completed transition;
+- partial WRN → WTW interruption rolls back safely to WRN and can be retried;
+- an unexpected third file state causes `TRANSITION_RECOVERY_CONFLICT` and is not overwritten;
+- WTW restoration removes `deploymentMode` only if WRN introduced it;
+- the pre-WRN `appliedId` is restored;
+- only the WRN metadata entry/profile is removed;
+- preferences and metadata changed while WRN was active are preserved;
+- a WRN-owned profile changed outside the expected transaction is not silently removed.
+
 ## Not yet claimed
 
-This checkpoint does not yet claim:
+This checkpoint still does not claim:
 
-- durable recovery after process/power loss mid-transaction;
-- field-preserving WRN → WTW restoration;
-- live mode switching on a real managed Claude installation;
-- login/history/Cowork preservation on a current managed build.
+- live mode switching on a current healthy Company Portal-managed Claude installation;
+- the exact current WTW baseline/field contract on that managed build;
+- login/history preservation across real round trips;
+- Cowork preservation through real managed-service round trips;
+- user-facing launch-button enablement.
 
-Those remain required before the launch buttons can be enabled.
+Those remain release-blocking qualification gates before live switching is enabled.
 
 ## Next checkpoint
 
-Add a minimal persisted activation baseline and a fixture WRN → WTW compiler that:
+Integrate the gateway and transition engine behind a fail-closed mode coordinator that can:
 
-- deactivates third-party mode first;
-- restores only WRN-owned/controlled fields;
-- removes only the WRN config-library entry;
-- removes the WRN-owned profile;
-- preserves preferences and metadata changed while WRN mode was active;
-- supports transactional rollback;
-- remains hard-disabled for actual Claude paths.
+- run current-machine preflight;
+- recover any pending transaction before planning another;
+- validate signed catalogue and local credentials;
+- start/check the loopback gateway before WRN activation;
+- produce a complete dry-run report;
+- keep real transition execution disabled while the clean managed-Claude gate is unresolved.
