@@ -494,6 +494,23 @@ internal static class ClaudeTransitionTests
                 ClaudeTransitionState.OwnershipBaselinePath(
                     stateRoot)));
 
+        var ownershipBaselineText = File.ReadAllText(
+            ClaudeTransitionState.OwnershipBaselinePath(
+                stateRoot));
+        Check(
+            "ownership baseline excludes Claude preference snapshots",
+            ownershipBaselineText.IndexOf(
+                "fixturePreference",
+                StringComparison.OrdinalIgnoreCase) < 0
+            && ownershipBaselineText.IndexOf(
+                "coworkUserFilesPath",
+                StringComparison.OrdinalIgnoreCase) < 0);
+        Check(
+            "ownership baseline excludes local gateway credential",
+            ownershipBaselineText.IndexOf(
+                "roundtrip-token",
+                StringComparison.Ordinal) < 0);
+
         var desktop = ParseObject(
             File.ReadAllBytes(fixture.Paths.DesktopConfigPath));
         var preferences =
