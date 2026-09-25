@@ -195,3 +195,28 @@ Production mode-transition logic and gateway policy must not depend on a permane
 Reason:
 
 The owner must be able to add, withdraw, re-describe, or change the recommended model from the maintainer laptop without rebuilding or manually reinstalling every colleague's application. Model changes have a materially faster cadence than application releases.
+
+
+## ADR-021 — Application updates use a separate signed trust channel
+
+**Status:** Accepted
+
+Launcher/gateway application releases use a dedicated signed application-release manifest and key, separate from the signed model catalogue.
+
+Candidates are staged, self-checked and activated by an external WRN updater helper outside the version folders. The previous healthy installation is retained and restored automatically if post-activation health fails.
+
+Reason:
+
+Application code and model-catalogue data have different release cadence and risk. A broken application update must not invalidate the model-update contract or require administrator recovery.
+
+## ADR-022 — Public app artifacts exclude local corporate hero assets
+
+**Status:** Accepted
+
+The public application-update artifact contains no local wrn-hero PNG corporate images.
+
+An installed client may copy its existing allowlisted local hero assets into a verified staged candidate before activation.
+
+Reason:
+
+The repository/update transport is public, while the internal WRN hero imagery is intentionally untracked. Preserving branding client-side avoids publishing private local assets and prevents ordinary updates from stripping the internal presentation.
