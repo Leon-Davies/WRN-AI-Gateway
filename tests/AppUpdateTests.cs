@@ -199,22 +199,34 @@ internal static class AppUpdateTests
                 candidate.ArtifactBytes,
                 publicKey);
 
+        Console.WriteLine(
+            "STAGE_STATUS="
+            + (staged.Status ?? "<null>"));
+
         Check(
             "valid signed update stages",
             staged.Success
             && staged.Changed
             && staged.Status == "UPDATE_STAGED"
             && staged.CandidateRelease == 2
+            && !string.IsNullOrWhiteSpace(
+                staged.CandidateAppRoot)
             && Directory.Exists(
                 staged.CandidateAppRoot));
 
-        AppReleaseIdentity identity;
-        Check(
-            "staged identity matches signed manifest",
-            AppReleaseIdentityStore.TryRead(
+        AppReleaseIdentity identity = null;
+        var identityOk =
+            !string.IsNullOrWhiteSpace(
+                staged.CandidateAppRoot)
+            && AppReleaseIdentityStore.TryRead(
                 staged.CandidateAppRoot,
                 out identity,
-                out error)
+                out error);
+
+        Check(
+            "staged identity matches signed manifest",
+            identityOk
+            && identity != null
             && identity.release == 2
             && identity.version
                 == "0.5.0-beta.2");
