@@ -34,7 +34,7 @@ try {
     Invoke-QualifiedVerifier "catalogue-integrity" "verify-phase2b-catalogue.ps1" "PHASE2B_CATALOGUE_VERIFY_PASS"
     Invoke-QualifiedVerifier "mode-recovery" "verify-phase3-coordinator.ps1" "PHASE3_COORDINATOR_VERIFY_PASS"
     Invoke-QualifiedVerifier "runtime-failures" "verify-phase4b-failures.ps1" "PHASE4B_FAILURES_VERIFY_PASS"
-    Invoke-QualifiedVerifier "app-update-recovery" "verify-phase5-updater.ps1" "PHASE5_UPDATER_VERIFY_PASS"
+    Invoke-QualifiedVerifier "app-update-recovery" "verify-phase5-updater.ps1" "PHASE5_UPDATER_CORE_VERIFY_PASS"
     Invoke-QualifiedVerifier "diagnostics-privacy" "verify-phase6-diagnostics.ps1" "PHASE6_DIAGNOSTICS_VERIFY_PASS"
 
     $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
