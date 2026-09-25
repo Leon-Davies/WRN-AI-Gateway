@@ -1,4 +1,7 @@
-param([string]$Version = "0.1.0-dev")
+param(
+    [string]$Version = "0.1.0-dev",
+    [int]$AppRelease = 0
+)
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
@@ -12,6 +15,17 @@ $appDir = Join-Path $release "app"
 if (Test-Path $release) { Remove-Item $release -Recurse -Force }
 New-Item -ItemType Directory -Path $appDir -Force | Out-Null
 Copy-Item (Join-Path $dist "*") $appDir -Recurse -Force
+
+$identity = [ordered]@{
+    schemaVersion = 1
+    release = $AppRelease
+    version = $Version
+}
+$identityJson = $identity | ConvertTo-Json
+[IO.File]::WriteAllText(
+    (Join-Path $appDir "app-release.json"),
+    ($identityJson + [Environment]::NewLine),
+    (New-Object Text.UTF8Encoding($false)))
 
 $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 $framework = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319"
@@ -55,6 +69,8 @@ $hashTargets = @(
     (Join-Path $release "WRN-AI-Gateway-Setup.exe"),
     (Join-Path $appDir "WRN-AI-Gateway.exe"),
     (Join-Path $appDir "WRN-AI-Gateway-Gateway.exe"),
+    (Join-Path $appDir "WRN-AI-Gateway-Updater.exe"),
+    (Join-Path $appDir "app-release.json"),
     (Join-Path $appDir "ui\MainWindow.xaml"),
     (Join-Path $appDir "catalogue\catalogue.json"),
     (Join-Path $appDir "catalogue\catalogue.sig")

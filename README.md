@@ -5,7 +5,7 @@ WRN AI Gateway is a user-space launcher and configuration layer for WRN colleagu
 The product is not a replacement for Claude Desktop. It is a small companion application that launches the organisation-managed Claude installation in one of two clearly separated modes:
 
 - **WTW Claude** — the baseline, organisation-managed Claude experience.
-- **WRN Claude** — the same managed Claude application, configured to route model inference through the WTW OpenRouter organisation and the WRN-published model catalogue.
+- **WRN Claude** — the same managed Claude application, configured to route model inference through the local WRN compatibility gateway to OpenRouter using the WRN-published signed model catalogue.
 
 The intended user experience is a dedicated WRN AI Gateway application with a friendly home screen, a time-appropriate greeting, two large launch cards, current model recommendations, a changelog, update status, and support information.
 
@@ -39,17 +39,25 @@ A new developer should read these files in order:
 
 ## Current project state
 
-Phase 0 architecture/documentation and the Phase 1 native Windows application shell are complete. Earlier prototype work demonstrated native Windows gateway feasibility, OpenRouter routing, DPAPI key storage, Claude Desktop third-party inference, model aliases, and Cowork file/tool workflows; that evidence is documented in PROJECT_CONTEXT.md.
+Phases 0–5 are implementation-complete.
 
-The Phase 1 native Windows application shell and no-admin per-user installer are implemented and owner-accepted. The shell remains deliberately non-destructive: WTW/WRN launch actions are placeholders and do not yet write Claude configuration or credentials.
+- **Phase 0** established the architecture, safety boundaries and acceptance contract.
+- **Phase 1** delivered the owner-accepted native WPF shell and no-admin per-user installer.
+- **Phase 2A** delivered read-only Claude installation/mode discovery and fail-closed unsupported-state handling.
+- **Phase 2B/2C** delivered the signed dynamic model catalogue, last-known-good client cache, maintainer publisher and real remote catalogue propagation.
+- **Phase 3** delivered the transactional WTW/WRN transition engine, production loopback gateway integration and rollback/recovery machinery behind a hard live-write gate.
+- **Phase 4** delivered native per-user OpenRouter onboarding, CurrentUser-DPAPI credential storage, hardened gateway policy, friendly failure normalization, same-model provider failover and live OpenRouter qualification.
+- **Phase 5** delivered the separate signed application-update channel, maintainer publisher, client check/download/install UI, staged activation, rollback and real remote update propagation.
 
-Phase 2A safe Claude discovery is implemented and merged. It is read-only with respect to Claude and fails closed on the current recovery/unsupported development state; the healthy managed-Claude positive path remains a release-blocking qualification gate before live switching. Phase 2B provides the signed dynamic model catalogue runtime, last-known-good cache and remote propagation path. Phase 2C now adds a maintainer-only publisher with OpenRouter qualification gating, preview-first signing, atomic catalogue publication, remote verification and local publication audit metadata.
-
-The most important unqualified behaviour is the complete round-trip on a healthy managed Claude installation:
+The most important unqualified behaviour remains the complete round-trip on a **healthy Company Portal-managed Claude installation**:
 
 WTW Claude → WRN Claude → WTW Claude → WRN Claude
 
-with history, login state, Cowork, and the managed VM service preserved throughout. This is a release-blocking qualification item.
+with login state, normal Claude history, Cowork and the managed workspace/VM service preserved throughout.
+
+The current development laptop is intentionally treated as a recovery/unsupported negative-path machine because its Claude installation was previously disturbed during diagnostic work. Live Claude configuration writes remain hard-disabled there. A clean colleague machine is the positive-path qualification target before the WTW/WRN launch buttons can be enabled for beta.
+
+The application and model-update systems can continue to be developed and qualified independently of that managed-Claude gate.
 
 ## Security note
 

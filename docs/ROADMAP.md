@@ -141,6 +141,8 @@ Exit: colleague can install and open WRN Claude without PowerShell/JSON.
 
 ## Phase 5 — Application updater
 
+**Status: complete. Signed application releases, maintainer publication, installed-client check/download/install UI, safe staging, external activation, rollback and real remote propagation are implemented and qualified.**
+
 Goal: update the launcher/gateway separately from the model catalogue without admin or manual reinstall.
 
 Deliverables:
