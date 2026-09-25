@@ -270,7 +270,7 @@ namespace WRN.AIGateway
             return report;
         }
 
-        private static void ProbeGatewayConfig(
+        internal static void ProbeGatewayConfig(
             string stateRoot,
             out ModeGatewayConfig config,
             out string error)
@@ -360,7 +360,7 @@ namespace WRN.AIGateway
             }
         }
 
-        private static bool ProbeGatewayHealth(
+        internal static bool ProbeGatewayHealth(
             int port,
             int expectedCatalogueRelease)
         {
