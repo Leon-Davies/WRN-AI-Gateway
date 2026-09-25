@@ -390,9 +390,9 @@ namespace WRN.AIGateway
                 "WRN-AI-Gateway.exe",
                 "WRN-AI-Gateway-Gateway.exe",
                 "WRN-AI-Gateway-Updater.exe",
-                "ui\MainWindow.xaml",
-                "catalogue\catalogue.json",
-                "catalogue\catalogue.sig",
+                @"ui\MainWindow.xaml",
+                @"catalogue\catalogue.json",
+                @"catalogue\catalogue.sig",
                 "app-release.json"
             })
             {
