@@ -136,6 +136,13 @@ New-Item -ItemType Directory -Force -Path $previewDir | Out-Null
 
 & (Join-Path $PSScriptRoot "package.ps1") -Version $Version -AppRelease $nextRelease | Out-Null
 
+# package.ps1 rebuilds dist from scratch, so recreate the maintainer-only
+# client-equivalent verifier after packaging.
+& (Join-Path $PSScriptRoot "build-app-update-check.ps1") | Out-Null
+if (-not (Test-Path -LiteralPath $checkExe)) {
+    throw "App update check tool was not rebuilt after packaging."
+}
+
 $builtRelease = Join-Path $root ("release\WRN-AI-Gateway-v" + $Version)
 $builtApp = Join-Path $builtRelease "app"
 if (-not (Test-Path -LiteralPath (Join-Path $builtApp "WRN-AI-Gateway.exe"))) {
