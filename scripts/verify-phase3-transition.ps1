@@ -42,6 +42,17 @@ try {
     if (-not $transitionSource.Contains("public const bool LiveClaudeWritesEnabled = false")) {
         throw "Live Claude write hard-disable is missing."
     }
+    foreach ($requiredSafetyPrimitive in @(
+        "ClaudeDeactivationCompiler",
+        "RecoverPending",
+        "ProtectedData.Protect",
+        "TRANSITION_RECOVERY_CONFLICT",
+        "RemoveOwnershipBaselineOnSuccess"
+    )) {
+        if (-not $transitionSource.Contains($requiredSafetyPrimitive)) {
+            throw "Required transition safety primitive is missing: $requiredSafetyPrimitive"
+        }
+    }
 
     $controllerSource = Get-Content (Join-Path $src "AppController.cs") -Raw
     if ($controllerSource.Contains("ClaudeTransitionExecutor.Execute")) {
@@ -66,6 +77,10 @@ try {
     Write-Host "PASS: stale source preflight rejection"
     Write-Host "PASS: injected failure rollback"
     Write-Host "PASS: unsafe source and profile collisions blocked"
+    Write-Host "PASS: field-preserving WRN -> WTW fixture restoration"
+    Write-Host "PASS: DPAPI-protected durable transaction recovery"
+    Write-Host "PASS: recovery conflict fails closed"
+    Write-Host "PASS: ownership baseline excludes preference/credential snapshots"
     Write-Host "PASS: actual Claude paths hard-disabled"
     Write-Host "PASS: UI launch buttons remain disconnected"
     Write-Host "PHASE3_TRANSITION_VERIFY_PASS" -ForegroundColor Green
