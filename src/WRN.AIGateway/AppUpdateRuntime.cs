@@ -776,10 +776,10 @@ namespace WRN.AIGateway
         private static string Quote(
             string value)
         {
-            return """
+            return "\""
                 + (value ?? string.Empty)
-                    .Replace(""", "\"")
-                + """;
+                    .Replace("\"", "\\\"")
+                + "\"";
         }
 
         private static string SafeStatus(
