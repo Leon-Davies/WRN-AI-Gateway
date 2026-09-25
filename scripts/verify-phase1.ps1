@@ -85,10 +85,11 @@ $requiredUi = @(
     "ModelRequestButton",
     "ReportBugButton",
     "Brought to you by the Willis Research Network",
-    'Height="164"',
+    'Height="156"',
     'Tag="wtw"',
     'Tag="wrn"',
-    'Padding="20,6,20,12"'
+    'Padding="20,6,20,12"',
+    'Margin="20,0,20,0"'
 )
 foreach ($required in $requiredUi) {
     if (-not $xaml.Contains($required)) {
