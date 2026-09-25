@@ -54,10 +54,13 @@ namespace WRN.AIGateway
         public int SchemaVersion { get; set; }
         public string CreatedAtUtc { get; set; }
         public int ActivationCatalogueRelease { get; set; }
+        public bool DesktopConfigExisted { get; set; }
+        public bool MetaExisted { get; set; }
         public bool DesktopDeploymentModeExisted { get; set; }
         public object DesktopDeploymentModeValue { get; set; }
         public bool MetaAppliedIdExisted { get; set; }
         public object MetaAppliedIdValue { get; set; }
+        public bool ConfigLibraryDirectoryExisted { get; set; }
         public string WrnProfileSha256 { get; set; }
     }
 
@@ -72,12 +75,21 @@ namespace WRN.AIGateway
         public string Purpose { get; set; }
     }
 
+    internal sealed class TransitionDirectoryMutation
+    {
+        public string Path { get; set; }
+        public bool ExpectedExists { get; set; }
+        public bool DesiredExists { get; set; }
+        public string Purpose { get; set; }
+    }
+
     internal sealed class ClaudeActivationPlan
     {
         public string Kind { get; set; }
         public int CatalogueRelease { get; set; }
         public string DefaultModelKey { get; set; }
         public TransitionMutation[] Mutations { get; set; }
+        public TransitionDirectoryMutation[] DirectoryMutations { get; set; }
         public byte[] OwnershipBaselineBytes { get; set; }
         public string OwnershipBaselineExpectedSha256 { get; set; }
         public bool RemoveOwnershipBaselineOnSuccess { get; set; }
@@ -148,12 +160,20 @@ namespace WRN.AIGateway
             if (!CatalogueValidator.Validate(catalogue, out catalogueError))
                 throw new InvalidOperationException("CATALOGUE_INVALID:" + catalogueError);
 
-            if (!Directory.Exists(paths.ThirdPartyRoot)
-                || !Directory.Exists(paths.ConfigLibraryPath))
+            if (!Directory.Exists(paths.ThirdPartyRoot))
             {
                 throw new InvalidOperationException(
                     "CLAUDE_CONFIG_PARENT_MISSING_PENDING_MANAGED_QUALIFICATION");
             }
+
+            if (File.Exists(paths.ConfigLibraryPath))
+            {
+                throw new InvalidOperationException(
+                    "CLAUDE_CONFIG_LIBRARY_PATH_NOT_DIRECTORY");
+            }
+
+            var configLibraryDirectoryExisted =
+                Directory.Exists(paths.ConfigLibraryPath);
 
             var baseline = ClaudeConfigBaseline.Capture(paths);
             if (baseline.WrnProfile.Exists)
@@ -204,13 +224,17 @@ namespace WRN.AIGateway
 
             var ownershipBaseline = new ClaudeOwnershipBaseline
             {
-                SchemaVersion = 1,
+                SchemaVersion = 2,
                 CreatedAtUtc = DateTimeOffset.UtcNow.ToString("o"),
                 ActivationCatalogueRelease = catalogue.release,
+                DesktopConfigExisted = baseline.DesktopConfig.Exists,
+                MetaExisted = baseline.Meta.Exists,
                 DesktopDeploymentModeExisted = priorDeploymentModeExisted,
                 DesktopDeploymentModeValue = priorDeploymentMode,
                 MetaAppliedIdExisted = priorAppliedIdExisted,
                 MetaAppliedIdValue = priorAppliedId,
+                ConfigLibraryDirectoryExisted =
+                    configLibraryDirectoryExisted,
                 WrnProfileSha256 = TransitionHash.Sha256(profileBytes)
             };
             var ownershipBaselineBytes = new UTF8Encoding(false).GetBytes(
@@ -241,6 +265,19 @@ namespace WRN.AIGateway
                 CatalogueRelease = catalogue.release,
                 DefaultModelKey = catalogue.defaultModelKey,
                 Mutations = mutations,
+                DirectoryMutations = configLibraryDirectoryExisted
+                    ? new TransitionDirectoryMutation[0]
+                    : new[]
+                    {
+                        new TransitionDirectoryMutation
+                        {
+                            Path = paths.ConfigLibraryPath,
+                            ExpectedExists = false,
+                            DesiredExists = true,
+                            Purpose =
+                                "Create Claude configLibrary only when it was absent at the WTW baseline."
+                        }
+                    },
                 OwnershipBaselineBytes = ownershipBaselineBytes,
                 OwnershipBaselineExpectedSha256 = null,
                 RemoveOwnershipBaselineOnSuccess = false,
@@ -442,13 +479,27 @@ namespace WRN.AIGateway
             }
 
             if (ownership == null
-                || ownership.SchemaVersion != 1
+                || (ownership.SchemaVersion != 1
+                    && ownership.SchemaVersion != 2)
                 || ownership.ActivationCatalogueRelease < 1
                 || string.IsNullOrWhiteSpace(ownership.WrnProfileSha256))
             {
                 throw new InvalidOperationException(
                     "WRN_OWNERSHIP_BASELINE_INVALID");
             }
+
+            var configLibraryDirectoryExistedAtBaseline =
+                ownership.SchemaVersion == 1
+                    ? true
+                    : ownership.ConfigLibraryDirectoryExisted;
+            var desktopConfigExistedAtBaseline =
+                ownership.SchemaVersion == 1
+                    ? true
+                    : ownership.DesktopConfigExisted;
+            var metaExistedAtBaseline =
+                ownership.SchemaVersion == 1
+                    ? true
+                    : ownership.MetaExisted;
 
             var current = ClaudeConfigBaseline.Capture(paths);
             if (!current.DesktopConfig.Exists
@@ -532,14 +583,22 @@ namespace WRN.AIGateway
             {
                 BuildMutation(
                     current.DesktopConfig,
-                    SerializeObject(desktop),
-                    true,
-                    "Deactivate Claude third-party deployment mode first."),
+                    desktopConfigExistedAtBaseline
+                        ? SerializeObject(desktop)
+                        : null,
+                    desktopConfigExistedAtBaseline,
+                    desktopConfigExistedAtBaseline
+                        ? "Deactivate Claude third-party deployment mode first."
+                        : "Remove the desktop config WRN created because none existed at the WTW baseline."),
                 BuildMutation(
                     current.Meta,
-                    SerializeObject(meta),
-                    true,
-                    "Restore the pre-WRN profile selection and remove only the WRN entry."),
+                    metaExistedAtBaseline
+                        ? SerializeObject(meta)
+                        : null,
+                    metaExistedAtBaseline,
+                    metaExistedAtBaseline
+                        ? "Restore the pre-WRN profile selection and remove only the WRN entry."
+                        : "Remove the config library metadata WRN created because none existed at the WTW baseline."),
                 BuildMutation(
                     current.WrnProfile,
                     null,
@@ -553,6 +612,20 @@ namespace WRN.AIGateway
                 CatalogueRelease = ownership.ActivationCatalogueRelease,
                 DefaultModelKey = null,
                 Mutations = mutations,
+                DirectoryMutations =
+                    configLibraryDirectoryExistedAtBaseline
+                        ? new TransitionDirectoryMutation[0]
+                        : new[]
+                        {
+                            new TransitionDirectoryMutation
+                            {
+                                Path = paths.ConfigLibraryPath,
+                                ExpectedExists = true,
+                                DesiredExists = false,
+                                Purpose =
+                                    "Remove WRN-created configLibrary after restoring the WTW baseline."
+                            }
+                        },
                 OwnershipBaselineBytes = null,
                 OwnershipBaselineExpectedSha256 =
                     TransitionHash.Sha256(baselineBytes),
@@ -659,6 +732,13 @@ namespace WRN.AIGateway
         public string DesiredSha256 { get; set; }
     }
 
+    internal sealed class TransitionJournalDirectoryMutation
+    {
+        public string Path { get; set; }
+        public bool ExpectedExists { get; set; }
+        public bool DesiredExists { get; set; }
+    }
+
     internal sealed class TransitionJournal
     {
         public int SchemaVersion { get; set; }
@@ -666,6 +746,7 @@ namespace WRN.AIGateway
         public string BaselineAction { get; set; }
         public string BaselineSha256 { get; set; }
         public TransitionJournalMutation[] Mutations { get; set; }
+        public TransitionJournalDirectoryMutation[] DirectoryMutations { get; set; }
     }
 
     internal static class ClaudeTransitionExecutor
@@ -784,8 +865,12 @@ namespace WRN.AIGateway
                     {
                         var mutation = plan.Mutations[i];
 
-                        if (!Directory.Exists(
-                            Path.GetDirectoryName(mutation.Path)))
+                        var parent =
+                            Path.GetDirectoryName(mutation.Path);
+                        if (!Directory.Exists(parent)
+                            && !PlanCreatesDirectory(
+                                plan,
+                                parent))
                         {
                             throw new InvalidOperationException(
                                 "TARGET_PARENT_DIRECTORY_MISSING");
@@ -822,6 +907,9 @@ namespace WRN.AIGateway
                         plan,
                         transitionStateRoot);
 
+                    ApplyDirectoryCreates(
+                        journal.DirectoryMutations);
+
                     for (var i = 0; i < plan.Mutations.Length; i++)
                     {
                         var mutation = plan.Mutations[i];
@@ -852,6 +940,9 @@ namespace WRN.AIGateway
                                 "INJECTED_TRANSITION_FAILURE");
                         }
                     }
+
+                    ApplyDirectoryDeletes(
+                        journal.DirectoryMutations);
 
                     CompleteOwnershipBaseline(
                         plan,
@@ -919,7 +1010,7 @@ namespace WRN.AIGateway
 
             return new TransitionJournal
             {
-                SchemaVersion = 1,
+                SchemaVersion = 2,
                 Kind = plan.Kind,
                 BaselineAction = baselineAction,
                 BaselineSha256 = baselineHash,
@@ -938,7 +1029,22 @@ namespace WRN.AIGateway
                             DesiredSha256 =
                                 mutation.DesiredSha256
                         };
-                    }).ToArray()
+                    }).ToArray(),
+                DirectoryMutations =
+                    (plan.DirectoryMutations
+                        ?? new TransitionDirectoryMutation[0])
+                    .Select(
+                        delegate(TransitionDirectoryMutation mutation)
+                        {
+                            return new TransitionJournalDirectoryMutation
+                            {
+                                Path = mutation.Path,
+                                ExpectedExists =
+                                    mutation.ExpectedExists,
+                                DesiredExists =
+                                    mutation.DesiredExists
+                            };
+                        }).ToArray()
             };
         }
 
@@ -961,6 +1067,81 @@ namespace WRN.AIGateway
             if (allowlist.Count != 3)
                 throw new InvalidOperationException(
                     "TRANSITION_ALLOWLIST_INVALID");
+
+            var parentCounts =
+                new Dictionary<string, int>(
+                    StringComparer.OrdinalIgnoreCase);
+            foreach (var path in allowlist)
+            {
+                var parent = Path.GetDirectoryName(path);
+                if (string.IsNullOrWhiteSpace(parent))
+                    throw new InvalidOperationException(
+                        "TRANSITION_ALLOWLIST_INVALID");
+
+                int count;
+                parentCounts.TryGetValue(parent, out count);
+                parentCounts[parent] = count + 1;
+            }
+
+            var allowedDirectory =
+                parentCounts
+                    .Where(delegate(KeyValuePair<string, int> item)
+                    {
+                        return item.Value == 2;
+                    })
+                    .Select(delegate(KeyValuePair<string, int> item)
+                    {
+                        return item.Key;
+                    })
+                    .SingleOrDefault();
+            var rootDirectory =
+                parentCounts
+                    .Where(delegate(KeyValuePair<string, int> item)
+                    {
+                        return item.Value == 1;
+                    })
+                    .Select(delegate(KeyValuePair<string, int> item)
+                    {
+                        return item.Key;
+                    })
+                    .SingleOrDefault();
+
+            if (string.IsNullOrWhiteSpace(allowedDirectory)
+                || string.IsNullOrWhiteSpace(rootDirectory)
+                || !string.Equals(
+                    Path.GetDirectoryName(allowedDirectory),
+                    rootDirectory,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "TRANSITION_ALLOWLIST_INVALID");
+            }
+
+            var directoryMutations =
+                plan.DirectoryMutations
+                ?? new TransitionDirectoryMutation[0];
+            if (directoryMutations.Length > 1)
+                throw new InvalidOperationException(
+                    "TRANSITION_DIRECTORY_PLAN_INVALID");
+
+            var seenDirectories = new HashSet<string>(
+                StringComparer.OrdinalIgnoreCase);
+            foreach (var directory in directoryMutations)
+            {
+                if (directory == null
+                    || string.IsNullOrWhiteSpace(directory.Path)
+                    || !string.Equals(
+                        directory.Path,
+                        allowedDirectory,
+                        StringComparison.OrdinalIgnoreCase)
+                    || !seenDirectories.Add(directory.Path)
+                    || directory.ExpectedExists
+                        == directory.DesiredExists)
+                {
+                    throw new InvalidOperationException(
+                        "TRANSITION_DIRECTORY_NOT_ALLOWLISTED");
+                }
+            }
 
             var seen = new HashSet<string>(
                 StringComparer.OrdinalIgnoreCase);
@@ -1016,6 +1197,30 @@ namespace WRN.AIGateway
         private static void Preflight(
             ClaudeActivationPlan plan)
         {
+            foreach (var directory in
+                plan.DirectoryMutations
+                ?? new TransitionDirectoryMutation[0])
+            {
+                if (File.Exists(directory.Path))
+                    throw new InvalidOperationException(
+                        "TRANSITION_DIRECTORY_PATH_CONFLICT");
+
+                if (Directory.Exists(directory.Path)
+                    != directory.ExpectedExists)
+                {
+                    throw new InvalidOperationException(
+                        "TRANSITION_DIRECTORY_SOURCE_EXISTENCE_CHANGED");
+                }
+
+                if (directory.DesiredExists
+                    && !Directory.Exists(
+                        Path.GetDirectoryName(directory.Path)))
+                {
+                    throw new InvalidOperationException(
+                        "TARGET_PARENT_DIRECTORY_MISSING");
+                }
+            }
+
             foreach (var mutation in plan.Mutations)
             {
                 if (!MatchesState(
@@ -1119,6 +1324,13 @@ namespace WRN.AIGateway
 
             var expectedMatches = new bool[journal.Mutations.Length];
             var desiredMatches = new bool[journal.Mutations.Length];
+            var directoryMutations =
+                journal.DirectoryMutations
+                ?? new TransitionJournalDirectoryMutation[0];
+            var directoryExpectedMatches =
+                new bool[directoryMutations.Length];
+            var directoryDesiredMatches =
+                new bool[directoryMutations.Length];
             var allExpected = true;
             var allDesired = true;
 
@@ -1144,6 +1356,33 @@ namespace WRN.AIGateway
                 allDesired = allDesired && desiredMatches[i];
             }
 
+            for (var i = 0; i < directoryMutations.Length; i++)
+            {
+                var mutation = directoryMutations[i];
+                directoryExpectedMatches[i] =
+                    MatchesDirectoryState(
+                        mutation.Path,
+                        mutation.ExpectedExists);
+                directoryDesiredMatches[i] =
+                    MatchesDirectoryState(
+                        mutation.Path,
+                        mutation.DesiredExists);
+
+                if (!directoryExpectedMatches[i]
+                    && !directoryDesiredMatches[i])
+                {
+                    throw new IOException(
+                        "TRANSITION_RECOVERY_CONFLICT");
+                }
+
+                allExpected =
+                    allExpected
+                    && directoryExpectedMatches[i];
+                allDesired =
+                    allDesired
+                    && directoryDesiredMatches[i];
+            }
+
             var baselinePath =
                 ClaudeTransitionState.OwnershipBaselinePath(
                     transitionStateRoot);
@@ -1166,6 +1405,9 @@ namespace WRN.AIGateway
             ValidateRecoveryBackups(
                 journal,
                 pendingRoot);
+
+            RestoreExpectedDirectoryCreates(
+                directoryMutations);
 
             for (var i = journal.Mutations.Length - 1; i >= 0; i--)
             {
@@ -1190,6 +1432,20 @@ namespace WRN.AIGateway
                 {
                     throw new IOException(
                         "TRANSITION_ROLLBACK_HASH_MISMATCH");
+                }
+            }
+
+            RestoreExpectedDirectoryDeletes(
+                directoryMutations);
+
+            for (var i = 0; i < directoryMutations.Length; i++)
+            {
+                if (!MatchesDirectoryState(
+                    directoryMutations[i].Path,
+                    directoryMutations[i].ExpectedExists))
+                {
+                    throw new IOException(
+                        "TRANSITION_DIRECTORY_ROLLBACK_MISMATCH");
                 }
             }
 
@@ -1332,13 +1588,182 @@ namespace WRN.AIGateway
                 File.Move(restore, mutation.Path);
         }
 
+        private static bool PlanCreatesDirectory(
+            ClaudeActivationPlan plan,
+            string path)
+        {
+            return (plan.DirectoryMutations
+                    ?? new TransitionDirectoryMutation[0])
+                .Any(delegate(TransitionDirectoryMutation mutation)
+                {
+                    return mutation != null
+                        && !mutation.ExpectedExists
+                        && mutation.DesiredExists
+                        && string.Equals(
+                            mutation.Path,
+                            path,
+                            StringComparison.OrdinalIgnoreCase);
+                });
+        }
+
+        private static void ApplyDirectoryCreates(
+            TransitionJournalDirectoryMutation[] mutations)
+        {
+            foreach (var mutation in
+                mutations
+                ?? new TransitionJournalDirectoryMutation[0])
+            {
+                if (!mutation.DesiredExists)
+                    continue;
+
+                if (File.Exists(mutation.Path)
+                    || Directory.Exists(mutation.Path))
+                {
+                    throw new InvalidOperationException(
+                        "TRANSITION_NEW_DIRECTORY_APPEARED");
+                }
+
+                var parent = Path.GetDirectoryName(mutation.Path);
+                if (!Directory.Exists(parent))
+                    throw new InvalidOperationException(
+                        "TARGET_PARENT_DIRECTORY_MISSING");
+
+                Directory.CreateDirectory(mutation.Path);
+                if (!MatchesDirectoryState(
+                    mutation.Path,
+                    true))
+                {
+                    throw new IOException(
+                        "TRANSITION_DIRECTORY_CREATE_FAILED");
+                }
+            }
+        }
+
+        private static void ApplyDirectoryDeletes(
+            TransitionJournalDirectoryMutation[] mutations)
+        {
+            foreach (var mutation in
+                mutations
+                ?? new TransitionJournalDirectoryMutation[0])
+            {
+                if (mutation.DesiredExists)
+                    continue;
+
+                if (File.Exists(mutation.Path))
+                    throw new InvalidOperationException(
+                        "TRANSITION_DIRECTORY_PATH_CONFLICT");
+                if (!Directory.Exists(mutation.Path))
+                    throw new InvalidOperationException(
+                        "TRANSITION_DIRECTORY_DELETE_TARGET_MISSING");
+
+                try
+                {
+                    Directory.Delete(mutation.Path, false);
+                }
+                catch (Exception ex)
+                {
+                    throw new IOException(
+                        "TRANSITION_DIRECTORY_DELETE_CONFLICT",
+                        ex);
+                }
+
+                if (!MatchesDirectoryState(
+                    mutation.Path,
+                    false))
+                {
+                    throw new IOException(
+                        "TRANSITION_DIRECTORY_POST_WRITE_EXISTENCE_MISMATCH");
+                }
+            }
+        }
+
+        private static bool MatchesDirectoryState(
+            string path,
+            bool expectedExists)
+        {
+            if (File.Exists(path))
+                return false;
+
+            return Directory.Exists(path) == expectedExists;
+        }
+
+        private static void RestoreExpectedDirectoryCreates(
+            TransitionJournalDirectoryMutation[] mutations)
+        {
+            foreach (var mutation in
+                mutations
+                ?? new TransitionJournalDirectoryMutation[0])
+            {
+                if (!mutation.ExpectedExists
+                    || Directory.Exists(mutation.Path))
+                {
+                    continue;
+                }
+
+                if (File.Exists(mutation.Path)
+                    || !Directory.Exists(
+                        Path.GetDirectoryName(mutation.Path)))
+                {
+                    throw new IOException(
+                        "TRANSITION_DIRECTORY_ROLLBACK_CONFLICT");
+                }
+
+                Directory.CreateDirectory(mutation.Path);
+                if (!Directory.Exists(mutation.Path))
+                    throw new IOException(
+                        "TRANSITION_DIRECTORY_ROLLBACK_CONFLICT");
+            }
+        }
+
+        private static void RestoreExpectedDirectoryDeletes(
+            TransitionJournalDirectoryMutation[] mutations)
+        {
+            foreach (var mutation in
+                mutations
+                ?? new TransitionJournalDirectoryMutation[0])
+            {
+                if (mutation.ExpectedExists
+                    || !Directory.Exists(mutation.Path))
+                {
+                    continue;
+                }
+
+                if (File.Exists(mutation.Path))
+                    throw new IOException(
+                        "TRANSITION_DIRECTORY_ROLLBACK_CONFLICT");
+
+                try
+                {
+                    Directory.Delete(mutation.Path, false);
+                }
+                catch (Exception ex)
+                {
+                    throw new IOException(
+                        "TRANSITION_DIRECTORY_ROLLBACK_CONFLICT",
+                        ex);
+                }
+            }
+        }
+
         private static void ValidateJournal(
             TransitionJournal journal)
         {
             if (journal == null
-                || journal.SchemaVersion != 1
+                || (journal.SchemaVersion != 1
+                    && journal.SchemaVersion != 2)
                 || journal.Mutations == null
                 || journal.Mutations.Length != 3)
+            {
+                throw new IOException(
+                    "TRANSITION_JOURNAL_INVALID");
+            }
+
+            var directoryMutations =
+                journal.DirectoryMutations
+                ?? new TransitionJournalDirectoryMutation[0];
+            if ((journal.SchemaVersion == 1
+                    && directoryMutations.Length != 0)
+                || directoryMutations.Length > 1)
             {
                 throw new IOException(
                     "TRANSITION_JOURNAL_INVALID");
@@ -1373,6 +1798,21 @@ namespace WRN.AIGateway
                     || (mutation.DesiredExists
                         && string.IsNullOrWhiteSpace(
                             mutation.DesiredSha256)))
+                {
+                    throw new IOException(
+                        "TRANSITION_JOURNAL_INVALID");
+                }
+            }
+
+            var seenDirectories = new HashSet<string>(
+                StringComparer.OrdinalIgnoreCase);
+            foreach (var directory in directoryMutations)
+            {
+                if (directory == null
+                    || string.IsNullOrWhiteSpace(directory.Path)
+                    || !seenDirectories.Add(directory.Path)
+                    || directory.ExpectedExists
+                        == directory.DesiredExists)
                 {
                     throw new IOException(
                         "TRANSITION_JOURNAL_INVALID");
