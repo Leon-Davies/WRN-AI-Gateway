@@ -20,6 +20,12 @@ namespace WRN.AIGateway.Gateway
         public int Port { get; set; }
     }
 
+    internal sealed class GatewayCredentialEnvelope
+    {
+        public int SchemaVersion { get; set; }
+        public string Key { get; set; }
+    }
+
     internal sealed class ParsedRequest
     {
         public string Method;
@@ -173,9 +179,39 @@ namespace WRN.AIGateway.Gateway
 
             try
             {
-                var key = Encoding.UTF8.GetString(plain).Trim();
+                var text = Encoding.UTF8.GetString(plain);
+                const string envelopePrefix = "WRN-CRED-V1\n";
+                string key;
+
+                if (text.StartsWith(
+                    envelopePrefix,
+                    StringComparison.Ordinal))
+                {
+                    var envelope =
+                        Json.Deserialize<GatewayCredentialEnvelope>(
+                            text.Substring(
+                                envelopePrefix.Length));
+                    if (envelope == null
+                        || envelope.SchemaVersion != 1
+                        || string.IsNullOrWhiteSpace(envelope.Key))
+                    {
+                        throw new InvalidOperationException(
+                            "OpenRouter credential envelope is invalid.");
+                    }
+
+                    key = envelope.Key.Trim();
+                    envelope.Key = null;
+                }
+                else
+                {
+                    // Compatibility with the earlier development format
+                    // where the DPAPI plaintext was the raw OpenRouter key.
+                    key = text.Trim();
+                }
+
                 if (string.IsNullOrWhiteSpace(key))
-                    throw new InvalidOperationException("OpenRouter credential is empty.");
+                    throw new InvalidOperationException(
+                        "OpenRouter credential is empty.");
                 return key;
             }
             finally
