@@ -126,9 +126,12 @@ internal static class DiagnosticsBundleTests
             Check(
                 "credential plaintext is not present",
                 AllAbsent(
-                    diagnostics,
-                    gateway,
-                    update,
+                    new[]
+                    {
+                        diagnostics,
+                        gateway,
+                        update
+                    },
                     "sk-or-fixture-super-secret-token",
                     "fixture-openrouter-credential",
                     "fixture-local-bearer-token"));
@@ -136,9 +139,12 @@ internal static class DiagnosticsBundleTests
             Check(
                 "prompt and Claude content are not copied",
                 AllAbsent(
-                    diagnostics,
-                    gateway,
-                    update,
+                    new[]
+                    {
+                        diagnostics,
+                        gateway,
+                        update
+                    },
                     "CONFIDENTIAL_PROMPT_CONTENT",
                     "CLAUDE_HISTORY_SENTINEL"));
 
@@ -268,26 +274,16 @@ internal static class DiagnosticsBundleTests
     }
 
     private static bool AllAbsent(
-        params string[] values)
+        string[] haystacks,
+        params string[] needles)
     {
-        if (values == null
-            || values.Length < 2)
+        foreach (var haystack in
+            haystacks
+            ?? new string[0])
         {
-            return true;
-        }
-
-        var needles =
-            values.Skip(
-                values.Length / 2)
-                .ToArray();
-        var haystacks =
-            values.Take(
-                values.Length / 2)
-                .ToArray();
-
-        foreach (var haystack in haystacks)
-        {
-            foreach (var needle in needles)
+            foreach (var needle in
+                needles
+                ?? new string[0])
             {
                 if ((haystack ?? string.Empty)
                     .IndexOf(
