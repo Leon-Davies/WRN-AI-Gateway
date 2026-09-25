@@ -242,6 +242,11 @@ internal static class ModeCoordinatorTests
             fixture.StateRoot,
             report.CatalogueRelease,
             5000);
+        Console.WriteLine(
+            "GATEWAY_RUNTIME status=" + runtime.Status
+            + " healthy=" + runtime.Healthy
+            + " started=" + runtime.Started
+            + " pid=" + runtime.ProcessId);
         Check(
             "owned gateway starts for healthy fixture",
             runtime.Healthy
