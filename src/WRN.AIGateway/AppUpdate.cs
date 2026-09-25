@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Web.Script.Serialization;
 using System.Xml;
 
@@ -817,12 +818,50 @@ namespace WRN.AIGateway
 
             foreach (var info in allowed)
             {
-                File.Copy(
-                    info.FullName,
+                var destination =
                     Path.Combine(
                         destinationAssets,
-                        info.Name),
-                    true);
+                        info.Name);
+
+                var copied = false;
+
+                for (var attempt = 0;
+                    attempt < 5;
+                    attempt++)
+                {
+                    try
+                    {
+                        File.Copy(
+                            info.FullName,
+                            destination,
+                            true);
+
+                        copied = true;
+                        break;
+                    }
+                    catch (IOException)
+                    {
+                        if (attempt < 4)
+                            Thread.Sleep(75);
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        if (attempt < 4)
+                            Thread.Sleep(75);
+                    }
+                }
+
+                if (!copied)
+                {
+                    try
+                    {
+                        if (File.Exists(destination))
+                            File.Delete(destination);
+                    }
+                    catch
+                    {
+                    }
+                }
             }
         }
 
