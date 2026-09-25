@@ -24,6 +24,14 @@ It should contain:
 - changelog entries;
 - optional support/announcement text.
 
+### Informational model cards
+
+WRN AI Gateway's Models view is a reference surface for the models currently available inside WRN Claude/Cowork. It is not a model selector.
+
+Until the signed catalogue is connected to the UI, any hard-coded model metadata is a dated development snapshot and must be kept aligned with the currently configured WRN Claude profile.
+
+Once catalogue integration is implemented, the catalogue should drive both the visible model list and the model-information detail panels, including benchmark snapshot metadata and external reference links.
+
 ## 3. Suggested model entry
 
 Illustrative fields:

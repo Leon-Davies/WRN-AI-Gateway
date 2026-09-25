@@ -4,6 +4,8 @@ The roadmap is intentionally incremental. Each phase should deliver a measurable
 
 ## Phase 0 — Documentation and architecture
 
+**Status: complete.**
+
 Goal: establish repository authority and prevent scope drift.
 
 Deliverables:
@@ -21,6 +23,8 @@ Exit: a new developer can explain the system, constraints, evidence, unknowns, a
 
 ## Phase 1 — WRN AI Gateway shell
 
+**Status: complete. Native shell and no-admin installer implemented, qualified and owner-accepted.**
+
 Goal: polished standalone launcher with no destructive behaviour.
 
 Deliverables:
@@ -29,7 +33,7 @@ Deliverables:
 - home screen;
 - greeting;
 - WTW/WRN cards;
-- Models/Updates/Support/Settings navigation;
+- Models/Updates/Support navigation;
 - local app version;
 - no-admin packaging;
 - placeholder/mock health states.

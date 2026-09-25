@@ -161,3 +161,182 @@ Normal users should never need to:
 - know a localhost port.
 
 Those are developer/support concerns.
+
+
+## 13. Copy discipline
+
+Visible copy should earn its place.
+
+Keep text when it is actionable, materially informative, or confidence-building. Remove internal development language, placeholder status labels, lifecycle terminology, and repeated explanation.
+
+Do not expose labels such as:
+
+- Phase 1 preview;
+- prototype healthy;
+- mock connection;
+- preview catalogue;
+- implementation-stage commentary.
+
+The product UI should read as a product even while implementation is incomplete.
+
+## 14. Action surfaces and motion
+
+Primary home actions should use the full card as the interactive target rather than small nested buttons.
+
+Required behaviour:
+
+- whole-card pointer target;
+- visible keyboard focus state;
+- restrained hover animation;
+- concise action cue such as Open or View models;
+- no animation that obscures or delays the action.
+
+The personalised greeting may type in once on launch as a short product flourish. If Windows client-area animation is disabled, show the completed greeting immediately rather than animating.
+
+## 15. External model context
+
+The Models view may link to a reputable external model-comparison source for current benchmark and pricing context.
+
+External links must be clearly labelled and open in the user's normal browser. They should supplement WRN's curated catalogue rather than replace it.
+
+
+## 16. Rotating WRN hero
+
+The Home greeting banner may rotate through approved WRN brand imagery.
+
+Required behaviour:
+
+- cross-fade rather than abrupt replacement;
+- a calm interval of several seconds between images;
+- greeting text remains stable and readable;
+- if Windows client-area animations are disabled, change images without animation;
+- branding assets must only be distributed from an approved repository/package location.
+
+## 17. ZDR mode labelling
+
+Both WTW Claude and WRN Claude are presented as Zero Data Retention experiences.
+
+The WRN card should remain explicit that its ZDR statement applies to model inference through WTW OpenRouter. Do not imply that ZDR means data never leaves WTW or that unrelated tools/services inherit the same retention policy automatically.
+
+## 18. Models is an information surface, not a model picker
+
+The Models page explains the models currently exposed in WRN Claude/Cowork. Clicking a model in WRN AI Gateway must not select or launch that model.
+
+Each model card should show concise, decision-useful information for non-technical users:
+
+- model name;
+- a short plain-English role/use cue;
+- a current Artificial Analysis intelligence ranking/index;
+- an explicitly labelled estimated short-message cost in USD;
+- a Details action.
+
+The Details view should explain:
+
+- what the model is;
+- what work it is a good choice for;
+- benchmark/cost context;
+- limitations or important supersession information where relevant;
+- a model-specific Artificial Analysis link.
+
+Benchmark ranks must be described as belonging to the relevant Artificial Analysis comparison class, not as a universal league table. Cost-per-message figures are estimates only and must state their token assumption. Cowork may use more context and multiple model/tool calls.
+
+The model reference data shown in the launcher is a dated snapshot until the signed central catalogue becomes authoritative.
+
+## 19. Support ownership and templates
+
+Support should state:
+
+**Built and maintained by the Willis Research Network.**
+
+The primary actions are:
+
+- Request a model;
+- Report a problem.
+
+Both actions use the same clickable-card hover/focus treatment as other interactive cards.
+
+Selecting an action opens an in-app template and displays:
+
+**Please send this request to Leon.Davies@wtwco.com**
+
+The problem template must remind users not to include API keys, passwords, or confidential prompt/file contents.
+
+
+## 20. Readability floor
+
+WRN AI Gateway is intended for non-technical colleagues and should not rely on tiny helper text.
+
+Guidance:
+
+- navigation text should remain comfortably readable at normal Windows scaling;
+- helper/metric labels should normally be at least 12 px equivalent in the current WPF shell;
+- important explanatory/body copy should normally be 13–14 px equivalent or larger;
+- do not shrink text merely to make a card fit — simplify or wrap the copy instead;
+- verify the UI at the supported minimum 980×680 window size after typography changes.
+
+## 21. Home action hierarchy
+
+The four action/reference cards beneath the hero form a balanced 2×2 visual grid.
+
+Requirements:
+
+- WTW Claude, WRN Claude, Model spotlight and What's new use equal card width and height;
+- WTW Claude and WRN Claude remain the strongest visual actions;
+- WTW Claude uses a distinct cool/blue treatment;
+- WRN Claude uses a distinct WRN-purple treatment;
+- the two launch cards must still include text labels so mode choice is not colour-only.
+
+## 22. Support email handoff
+
+Support templates should offer:
+
+- **Open in Outlook**;
+- **Copy template**;
+- **Close**.
+
+Open in Outlook must create a populated draft addressed to Leon.Davies@wtwco.com; it must never send automatically.
+
+Use the Windows registered mailto handler first so managed Outlook receives the normal compose request. An Outlook-specific compose URI may be used only as a fallback.
+
+## 23. Application identity
+
+The launcher and installer should use a recognisable WRN AI Gateway application icon instead of the default Windows executable icon.
+
+The current icon treatment is:
+
+- WRN purple rounded tile;
+- white W;
+- small green status/accent dot.
+
+The executable icon should propagate naturally to taskbar and shortcut surfaces without requiring administrator rights.
+
+
+## 24. Hover breathing room
+
+Animated action cards must not touch a clipping boundary.
+
+For scrollable Home and Models surfaces, keep a small inset around the viewport so the card hover scale/border can render on all sides.
+
+Acceptance:
+
+- left-column cards do not lose their left hover edge;
+- right-column cards do not lose their right hover edge;
+- the same behaviour holds for Home and Models;
+- do not remove the hover motion merely to hide clipping.
+
+## 25. WRN dialog shell
+
+Model details and Support templates are part of WRN AI Gateway and must not fall back to default Windows dialog chrome.
+
+Required dialog treatment:
+
+- custom WRN-purple title bar;
+- WRN mark and product name;
+- custom close control;
+- rounded light application surface;
+- no standard Windows title bar;
+- rounded WRN-styled action buttons;
+- content typography consistent with the main application;
+- Support template field visually integrated with the shell.
+
+The native Windows window may still provide accessibility, ownership, modality and task-switching behaviour underneath the custom shell.

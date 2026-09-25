@@ -39,9 +39,9 @@ A new developer should read these files in order:
 
 ## Current project state
 
-The repository is in its design/documentation phase. A native Windows gateway prototype, OpenRouter routing, DPAPI key storage, Claude Desktop third-party inference, model aliases, and Cowork file/tool workflows have already been demonstrated experimentally. Those experiments are documented in PROJECT_CONTEXT.md.
+Phase 0 architecture/documentation and the Phase 1 native Windows application shell are complete. Earlier prototype work demonstrated native Windows gateway feasibility, OpenRouter routing, DPAPI key storage, Claude Desktop third-party inference, model aliases, and Cowork file/tool workflows; that evidence is documented in PROJECT_CONTEXT.md.
 
-The production WRN AI Gateway application has not yet been implemented.
+The Phase 1 native Windows application shell and no-admin per-user installer are implemented and owner-accepted. The shell remains deliberately non-destructive: WTW/WRN launch actions are placeholders and do not yet write Claude configuration or credentials.
 
 The most important unqualified behaviour is the complete round-trip on a healthy managed Claude installation:
 
