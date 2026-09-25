@@ -59,7 +59,7 @@ Deliverables:
 - no history writes;
 - fail-closed handling for copied/recovery/unsupported Claude installations.
 
-Exit: mode transition plan is empirically grounded on the current managed Claude build.
+Exit: the read-only discovery and dry-run safety layer is implemented and qualified against fixtures plus the degraded/recovery machine. The exact field-level transition contract for a healthy current managed Claude build remains a release-blocking qualification gate before live Phase 3 switching is enabled.
 
 ## Phase 2B — Signed dynamic model catalogue runtime
 

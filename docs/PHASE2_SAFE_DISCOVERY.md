@@ -76,10 +76,34 @@ Accordingly:
 - no Claude configuration was changed;
 - this state must not be used to approve the production transition contract.
 
-The official managed Claude installation must be restored/confirmed before the healthy-baseline acceptance checkpoint.
+The healthy managed-Claude positive path will be qualified on a clean Company Portal-managed colleague machine before live Phase 3 switching is enabled. The damaged local Company Portal state does not block development of the discovery, catalogue, publisher, gateway, credential, update, or fixture-tested switching layers.
 
 ## Remote model control constraint
 
 Phase 2A contains no fixed model names or OpenRouter model IDs.
 
 Before live switching is enabled, Phase 2B/2C must provide the signed catalogue runtime and maintainer publisher. The production WRN profile/gateway will therefore be generated from verified catalogue state rather than a permanently compiled shortlist.
+
+## Acceptance split
+
+Phase 2A implementation acceptance can complete without repairing this development laptop.
+
+Accepted now:
+
+- read-only installation/mode discovery;
+- fail-closed handling for recovery, user-installed, malformed, running, and invalid-source states;
+- explicit candidate write allowlist;
+- history/data exclusion;
+- dry-run transition planning;
+- model-independent switching architecture;
+- automated fixture coverage and Phase 1 regression coverage.
+
+Deferred release qualification before Phase 3 live switching:
+
+- observe a current healthy Company Portal-managed Claude installation;
+- confirm the exact current WTW configuration baseline;
+- validate the candidate field-level allowlist against that build;
+- perform real WTW → WRN → WTW cycles;
+- prove login/history/Cowork preservation.
+
+A clean pilot colleague machine may satisfy this deferred gate; the damaged development laptop is not required to do so.
