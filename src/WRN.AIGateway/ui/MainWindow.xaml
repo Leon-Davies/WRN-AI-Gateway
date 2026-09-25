@@ -553,6 +553,38 @@
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel Margin="0,4,0,20">
                                 <TextBlock Text="What's new" Foreground="#2D2531" FontSize="29" FontWeight="SemiBold" Margin="0,0,0,20"/>
+
+                                <Border Style="{StaticResource CardStyle}" Padding="22" Margin="0,0,0,14">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="WRN AI Gateway" FontSize="16" FontWeight="SemiBold"
+                                                       Foreground="#302735"/>
+                                            <TextBlock x:Name="AppUpdateStatusText"
+                                                       Text="Checking for updates…"
+                                                       Style="{StaticResource MutedTextStyle}"
+                                                       Margin="0,6,0,0"/>
+                                            <TextBlock x:Name="AppUpdateVersionText"
+                                                       Text=""
+                                                       Foreground="#9A919E" FontSize="12"
+                                                       Margin="0,4,0,0"/>
+                                        </StackPanel>
+
+                                        <Button x:Name="AppUpdateButton"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Check for WRN AI Gateway updates"
+                                                Content="Check for updates"
+                                                Height="40" MinWidth="132"
+                                                Margin="18,0,0,0"
+                                                VerticalAlignment="Center"
+                                                Style="{StaticResource SecondaryButtonStyle}"/>
+                                    </Grid>
+                                </Border>
+
                                 <Border Style="{StaticResource CardStyle}" Padding="22">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
