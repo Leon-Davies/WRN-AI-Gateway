@@ -242,7 +242,7 @@ namespace WRN.AIGateway
                     RuntimeFailureKind.ServiceUnavailable,
                     "OPENROUTER_TEMPORARY_FAILURE",
                     "The model service is temporarily unavailable",
-                    "Try again in a moment.",
+                    "The model service is temporarily unavailable. Try again in a moment.",
                     false,
                     503,
                     "api_error");
