@@ -602,6 +602,109 @@ namespace WRN.AIGateway.Gateway
             NetworkStream stream,
             HttpResponseMessage response)
         {
+            var contentType =
+                response.Content.Headers.ContentType == null
+                    ? string.Empty
+                    : response.Content.Headers.ContentType.MediaType;
+
+            if (!string.Equals(
+                contentType,
+                "text/event-stream",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                var body =
+                    await response.Content
+                        .ReadAsByteArrayAsync()
+                        .ConfigureAwait(false);
+
+                RuntimeFailure embeddedFailure;
+                if (GatewayFailureSanitizer.TryMapJsonError(
+                    body,
+                    out embeddedFailure))
+                {
+                    Log(
+                        "embedded_upstream_failure code="
+                        + embeddedFailure.Code);
+
+                    await WriteAnthropicFailure(
+                        stream,
+                        embeddedFailure)
+                        .ConfigureAwait(false);
+                    return;
+                }
+
+                await WriteUpstreamHeaders(
+                    stream,
+                    response).ConfigureAwait(false);
+
+                if (body.Length > 0)
+                {
+                    await stream.WriteAsync(
+                        body,
+                        0,
+                        body.Length)
+                        .ConfigureAwait(false);
+                }
+
+                await stream.FlushAsync()
+                    .ConfigureAwait(false);
+                return;
+            }
+
+            await WriteUpstreamHeaders(
+                stream,
+                response).ConfigureAwait(false);
+
+            using (var upstream =
+                await response.Content
+                    .ReadAsStreamAsync()
+                    .ConfigureAwait(false))
+            using (var reader =
+                new StreamReader(
+                    upstream,
+                    Encoding.UTF8,
+                    true,
+                    16384))
+            {
+                string line;
+                while ((line =
+                    await reader.ReadLineAsync()
+                        .ConfigureAwait(false)) != null)
+                {
+                    string sanitized;
+                    RuntimeFailure embeddedFailure;
+
+                    if (GatewayFailureSanitizer
+                        .TrySanitizeSseDataLine(
+                            line,
+                            out sanitized,
+                            out embeddedFailure))
+                    {
+                        line = sanitized;
+                        Log(
+                            "embedded_stream_failure code="
+                            + embeddedFailure.Code);
+                    }
+
+                    var bytes =
+                        Encoding.UTF8.GetBytes(
+                            line + "\r\n");
+
+                    await stream.WriteAsync(
+                        bytes,
+                        0,
+                        bytes.Length)
+                        .ConfigureAwait(false);
+                    await stream.FlushAsync()
+                        .ConfigureAwait(false);
+                }
+            }
+        }
+
+        private static async Task WriteUpstreamHeaders(
+            NetworkStream stream,
+            HttpResponseMessage response)
+        {
             var builder = new StringBuilder();
             builder.Append("HTTP/1.1 ")
                 .Append((int)response.StatusCode)
@@ -616,10 +719,16 @@ namespace WRN.AIGateway.Gateway
                     .Append("\r\n");
             }
 
-            foreach (var name in new[] { "x-request-id", "openrouter-generation-id" })
+            foreach (var name in new[]
+            {
+                "x-request-id",
+                "openrouter-generation-id"
+            })
             {
                 IEnumerable<string> values;
-                if (response.Headers.TryGetValues(name, out values))
+                if (response.Headers.TryGetValues(
+                    name,
+                    out values))
                 {
                     foreach (var value in values)
                     {
@@ -634,28 +743,18 @@ namespace WRN.AIGateway.Gateway
             builder.Append("Cache-Control: no-cache\r\n")
                 .Append("Connection: close\r\n\r\n");
 
-            var responseHead = Encoding.ASCII.GetBytes(builder.ToString());
-            await stream.WriteAsync(
-                responseHead,
-                0,
-                responseHead.Length).ConfigureAwait(false);
-            await stream.FlushAsync().ConfigureAwait(false);
+            var head =
+                Encoding.ASCII.GetBytes(
+                    builder.ToString());
 
-            using (var upstream =
-                await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-            {
-                var buffer = new byte[16384];
-                int count;
-                while ((count = await upstream.ReadAsync(
-                    buffer,
-                    0,
-                    buffer.Length).ConfigureAwait(false)) > 0)
-                {
-                    await stream.WriteAsync(buffer, 0, count).ConfigureAwait(false);
-                    await stream.FlushAsync().ConfigureAwait(false);
-                }
-            }
+            await stream.WriteAsync(
+                head,
+                0,
+                head.Length).ConfigureAwait(false);
+            await stream.FlushAsync()
+                .ConfigureAwait(false);
         }
+
         private static async Task WriteSimple(
             NetworkStream stream,
             int code,
