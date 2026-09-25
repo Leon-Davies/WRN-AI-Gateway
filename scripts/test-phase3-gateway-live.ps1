@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$KeyEnvFile,
-    [int]$Port = 18937
+    [int]$Port = 18937,
+    [string]$ModelKey
 )
 
 $ErrorActionPreference = "Stop"
@@ -113,7 +114,17 @@ try {
     }
 
     $catalogue = Get-Content -LiteralPath $cataloguePath -Raw | ConvertFrom-Json
-    $model = @($catalogue.models | Where-Object { $_.key -eq $catalogue.defaultModelKey })[0]
+    $selectedKey = if ([string]::IsNullOrWhiteSpace($ModelKey)) {
+        $catalogue.defaultModelKey
+    } else {
+        $ModelKey
+    }
+    $model = @($catalogue.models | Where-Object {
+        $_.key -eq $selectedKey -and $_.visible
+    })[0]
+    if (-not $model) {
+        throw ("Visible catalogue model not found: " + $selectedKey)
+    }
     $headers = @{
         Authorization = ("Bearer " + $localKey)
         "anthropic-version" = "2023-06-01"
