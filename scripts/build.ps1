@@ -90,6 +90,8 @@ if ($LASTEXITCODE -ne 0) {
     throw "Compilation failed with exit code $LASTEXITCODE"
 }
 
+& (Join-Path $PSScriptRoot "build-gateway.ps1") | Out-Null
+
 Write-Host ""
 Write-Host "Build complete:" -ForegroundColor Green
 Write-Host "  $dist\WRN-AI-Gateway.exe"
