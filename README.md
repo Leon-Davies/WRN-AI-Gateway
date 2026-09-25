@@ -43,7 +43,7 @@ Phase 0 architecture/documentation and the Phase 1 native Windows application sh
 
 The Phase 1 native Windows application shell and no-admin per-user installer are implemented and owner-accepted. The shell remains deliberately non-destructive: WTW/WRN launch actions are placeholders and do not yet write Claude configuration or credentials.
 
-Phase 2A safe Claude discovery is implemented and merged. It is read-only with respect to Claude and fails closed on the current recovery/unsupported development state; the healthy managed-Claude positive path remains a release-blocking qualification gate before live switching. Phase 2B now provides the signed dynamic model catalogue runtime, last-known-good cache and remote propagation path. The maintainer publisher remains the next beta prerequisite before live switching.
+Phase 2A safe Claude discovery is implemented and merged. It is read-only with respect to Claude and fails closed on the current recovery/unsupported development state; the healthy managed-Claude positive path remains a release-blocking qualification gate before live switching. Phase 2B provides the signed dynamic model catalogue runtime, last-known-good cache and remote propagation path. Phase 2C now adds a maintainer-only publisher with OpenRouter qualification gating, preview-first signing, atomic catalogue publication, remote verification and local publication audit metadata.
 
 The most important unqualified behaviour is the complete round-trip on a healthy managed Claude installation:
 
