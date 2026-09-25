@@ -9,6 +9,7 @@
         ResizeMode="CanResize"
         Background="#F6F4F8"
         FontFamily="Segoe UI"
+        FontSize="13"
         TextOptions.TextFormattingMode="Display"
         SnapsToDevicePixels="True">
     <Window.Resources>
@@ -66,7 +67,7 @@
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="#6D6471"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontSize" Value="15"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
@@ -102,7 +103,7 @@
             <Setter Property="Background" Value="#52186D"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
@@ -212,6 +213,30 @@
                                     </BeginStoryboard>
                                 </Trigger.ExitActions>
                             </Trigger>
+                            <Trigger Property="Tag" Value="wtw">
+                                <Setter TargetName="Chrome" Property="Background" Value="#EEF6FB"/>
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#B8D4E6"/>
+                            </Trigger>
+                            <Trigger Property="Tag" Value="wrn">
+                                <Setter TargetName="Chrome" Property="Background" Value="#F5EAF8"/>
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#CDA7DC"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="Tag" Value="wtw"/>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Chrome" Property="Background" Value="#E2F0F8"/>
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#7FB5D3"/>
+                            </MultiTrigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="Tag" Value="wrn"/>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Chrome" Property="Background" Value="#EFDDF5"/>
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#A76BBC"/>
+                            </MultiTrigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
                                 <Setter TargetName="Chrome" Property="BorderBrush" Value="#8D5CA3"/>
                             </Trigger>
@@ -226,13 +251,13 @@
 
         <Style x:Key="SectionHeadingStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="#2A222E"/>
-            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontSize" Value="20"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
 
         <Style x:Key="MutedTextStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="#716976"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
     </Window.Resources>
@@ -281,7 +306,7 @@
                     </Grid.RowDefinitions>
 
                     <StackPanel>
-                        <TextBlock Text="WORKSPACE" Foreground="#A29AA6" FontSize="10" FontWeight="Bold" Margin="12,0,0,6"/>
+                        <TextBlock Text="WORKSPACE" Foreground="#A29AA6" FontSize="12" FontWeight="Bold" Margin="12,0,0,6"/>
                         <TextBlock Text="Willis Research Network" Foreground="#2B2330" FontSize="14" FontWeight="SemiBold" Margin="12,0,0,0"/>
                     </StackPanel>
 
@@ -364,7 +389,9 @@
                                                 <TextBlock x:Name="GreetingText" Text="" Foreground="White"
                                                            FontSize="29" FontWeight="SemiBold"/>
                                                 <TextBlock Text="Choose your Claude experience."
-                                                           Foreground="#F2E7F5" FontSize="15" Margin="0,8,0,0"/>
+                                                           Foreground="#F2E7F5" FontSize="16" Margin="0,8,0,0"/>
+                                                <TextBlock Text="Brought to you by the Willis Research Network"
+                                                           Foreground="#E7D8EC" FontSize="13" FontWeight="SemiBold" Margin="0,10,0,0"/>
                                             </StackPanel>
                                         </Grid>
                                     </Grid>
@@ -380,7 +407,7 @@
                                     </Grid.ColumnDefinitions>
 
                                     <Button x:Name="WTWLaunchButton" AutomationProperties.Name="Open WTW Claude"
-                                            Grid.Column="0" Style="{StaticResource ActionCardButtonStyle}">
+                                            Grid.Column="0" Style="{StaticResource ActionCardButtonStyle}" Tag="wtw" Height="164">
                                         <Grid>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
@@ -398,11 +425,11 @@
                                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel Grid.Column="1" Margin="13,1,0,0">
-                                                    <TextBlock Text="WTW Claude" Foreground="#2C2530" FontSize="18" FontWeight="SemiBold"/>
-                                                    <TextBlock Text="Standard WTW Claude" Foreground="#7A727E" FontSize="11" Margin="0,3,0,0"/>
+                                                    <TextBlock Text="WTW Claude" Foreground="#2C2530" FontSize="19" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="Standard WTW Claude" Foreground="#7A727E" FontSize="12" Margin="0,3,0,0"/>
                                                 </StackPanel>
                                                 <Border Grid.Column="2" Style="{StaticResource PillStyle}" Background="#EAF6F1" VerticalAlignment="Top">
-                                                    <TextBlock Text="ZDR" Foreground="#237157" FontSize="10" FontWeight="Bold"/>
+                                                    <TextBlock Text="ZDR" Foreground="#237157" FontSize="12" FontWeight="Bold"/>
                                                 </Border>
                                             </Grid>
                                             <TextBlock Grid.Row="1" Text="Your normal Claude experience."
@@ -415,8 +442,7 @@
                                     </Button>
 
                                     <Button x:Name="WRNLaunchButton" AutomationProperties.Name="Open WRN Claude"
-                                            Grid.Column="2" Style="{StaticResource ActionCardButtonStyle}"
-                                            BorderBrush="#DCCAE5" Background="#FFFCFF">
+                                            Grid.Column="2" Style="{StaticResource ActionCardButtonStyle}" Tag="wrn" Height="164">
                                         <Grid>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
@@ -434,11 +460,11 @@
                                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel Grid.Column="1" Margin="13,1,0,0">
-                                                    <TextBlock Text="WRN Claude" Foreground="#3E174D" FontSize="18" FontWeight="SemiBold"/>
-                                                    <TextBlock Text="WTW OpenRouter" Foreground="#765780" FontSize="11" Margin="0,3,0,0"/>
+                                                    <TextBlock Text="WRN Claude" Foreground="#3E174D" FontSize="19" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="WTW OpenRouter" Foreground="#765780" FontSize="12" Margin="0,3,0,0"/>
                                                 </StackPanel>
                                                 <Border Grid.Column="2" Style="{StaticResource PillStyle}" Background="#EAF6F1" VerticalAlignment="Top">
-                                                    <TextBlock Text="ZDR" Foreground="#237157" FontSize="10" FontWeight="Bold"/>
+                                                    <TextBlock Text="ZDR" Foreground="#237157" FontSize="12" FontWeight="Bold"/>
                                                 </Border>
                                             </Grid>
                                             <TextBlock Grid.Row="1" Text="Zero Data Retention enforced for model inference."
@@ -453,13 +479,13 @@
 
                                 <Grid Margin="0,18,0,0">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="1.18*"/>
+                                        <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="16"/>
-                                        <ColumnDefinition Width="0.82*"/>
+                                        <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
 
                                     <Button x:Name="ModelsShortcutButton" AutomationProperties.Name="View models"
-                                            Grid.Column="0" Style="{StaticResource ActionCardButtonStyle}" Padding="20">
+                                            Grid.Column="0" Style="{StaticResource ActionCardButtonStyle}" Padding="20" Height="164">
                                         <StackPanel>
                                             <TextBlock Text="Model spotlight" Style="{StaticResource SectionHeadingStyle}"/>
                                             <Grid Margin="0,14,0,0">
@@ -474,23 +500,23 @@
                                                 </Border>
                                                 <StackPanel Grid.Column="1" Margin="13,0,14,0" VerticalAlignment="Center">
                                                     <TextBlock Text="DeepSeek V4.1 Flash" Foreground="#302536" FontSize="14" FontWeight="SemiBold"/>
-                                                    <TextBlock Text="Fast, cost-efficient general work" Foreground="#817787" FontSize="11" Margin="0,3,0,0"/>
+                                                    <TextBlock Text="Fast, cost-efficient general work" Foreground="#817787" FontSize="12" Margin="0,3,0,0"/>
                                                 </StackPanel>
                                                 <TextBlock Grid.Column="2" Text="View models →" Foreground="#5A1A75"
-                                                           FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                           FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                             </Grid>
                                         </StackPanel>
                                     </Button>
 
                                     <Button x:Name="UpdatesShortcutButton" AutomationProperties.Name="View what's new"
-                                            Grid.Column="2" Style="{StaticResource ActionCardButtonStyle}" Padding="20">
+                                            Grid.Column="2" Style="{StaticResource ActionCardButtonStyle}" Padding="20" Height="164">
                                         <StackPanel>
                                             <TextBlock Text="What's new" Style="{StaticResource SectionHeadingStyle}"/>
                                             <TextBlock Text="WRN AI Gateway" Foreground="#3B3340" FontSize="13"
                                                        FontWeight="SemiBold" Margin="0,14,0,0"/>
                                             <TextBlock Text="Launcher, model catalogue and updates in one place."
-                                                       Style="{StaticResource MutedTextStyle}" FontSize="11.5" Margin="0,5,0,12"/>
-                                            <TextBlock Text="See updates →" Foreground="#5A1A75" FontSize="11" FontWeight="SemiBold"/>
+                                                       Style="{StaticResource MutedTextStyle}" FontSize="12" Margin="0,5,0,12"/>
+                                            <TextBlock Text="See updates →" Foreground="#5A1A75" FontSize="12" FontWeight="SemiBold"/>
                                         </StackPanel>
                                     </Button>
                                 </Grid>
@@ -501,7 +527,7 @@
                     <Grid x:Name="ModelsPage" Visibility="Collapsed">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel Margin="0,4,0,20">
-                                <TextBlock Text="Models" Foreground="#2D2531" FontSize="27" FontWeight="SemiBold" Margin="0,0,0,18"/>
+                                <TextBlock Text="Models" Foreground="#2D2531" FontSize="29" FontWeight="SemiBold" Margin="0,0,0,18"/>
 
                                 <UniformGrid Columns="2">
                                     <Button x:Name="ModelDeepSeekButton" AutomationProperties.Name="About DeepSeek V4.1 Flash"
@@ -518,10 +544,10 @@
                                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel Grid.Column="1" Margin="13,0,10,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="DeepSeek V4.1 Flash" FontSize="16" FontWeight="SemiBold" Foreground="#302536"/>
-                                                    <TextBlock Text="Fast everyday work" FontSize="11" Foreground="#817787" Margin="0,3,0,0"/>
+                                                    <TextBlock Text="DeepSeek V4.1 Flash" FontSize="17" FontWeight="SemiBold" Foreground="#302536"/>
+                                                    <TextBlock Text="Fast everyday work" FontSize="12" Foreground="#817787" Margin="0,3,0,0"/>
                                                 </StackPanel>
-                                                <TextBlock Grid.Column="2" Text="Details →" Foreground="#5A1A75" FontSize="10.5"
+                                                <TextBlock Grid.Column="2" Text="Details →" Foreground="#5A1A75" FontSize="12"
                                                            FontWeight="SemiBold" VerticalAlignment="Center"/>
                                             </Grid>
                                             <Grid Margin="0,16,0,0">
@@ -530,12 +556,12 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel>
-                                                    <TextBlock Text="AA rank" Foreground="#9A909F" FontSize="9.5"/>
+                                                    <TextBlock Text="AA rank" Foreground="#9A909F" FontSize="12"/>
                                                     <TextBlock Text="#7  ·  Index 39" Foreground="#3B3340" FontSize="12" FontWeight="SemiBold" Margin="0,2,0,0"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
-                                                    <TextBlock Text="Est. short message*" Foreground="#9A909F" FontSize="9.5"/>
-                                                    <TextBlock Text="~0.18¢" Foreground="#3B3340" FontSize="12" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                                                    <TextBlock Text="Est. short message*" Foreground="#9A909F" FontSize="12"/>
+                                                    <TextBlock Text="$0.0018" Foreground="#3B3340" FontSize="12" FontWeight="SemiBold" Margin="0,2,0,0"/>
                                                 </StackPanel>
                                             </Grid>
                                         </StackPanel>
@@ -555,10 +581,10 @@
                                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel Grid.Column="1" Margin="13,0,10,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="Claude Sonnet 5" FontSize="16" FontWeight="SemiBold" Foreground="#302536"/>
-                                                    <TextBlock Text="Writing &amp; tool workflows" FontSize="11" Foreground="#817787" Margin="0,3,0,0"/>
+                                                    <TextBlock Text="Claude Sonnet 5" FontSize="17" FontWeight="SemiBold" Foreground="#302536"/>
+                                                    <TextBlock Text="Writing &amp; tool workflows" FontSize="12" Foreground="#817787" Margin="0,3,0,0"/>
                                                 </StackPanel>
-                                                <TextBlock Grid.Column="2" Text="Details →" Foreground="#5A1A75" FontSize="10.5"
+                                                <TextBlock Grid.Column="2" Text="Details →" Foreground="#5A1A75" FontSize="12"
                                                            FontWeight="SemiBold" VerticalAlignment="Center"/>
                                             </Grid>
                                             <Grid Margin="0,16,0,0">
@@ -567,12 +593,12 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel>
-                                                    <TextBlock Text="AA rank" Foreground="#9A909F" FontSize="9.5"/>
+                                                    <TextBlock Text="AA rank" Foreground="#9A909F" FontSize="12"/>
                                                     <TextBlock Text="#54  ·  Index 38" Foreground="#3B3340" FontSize="12" FontWeight="SemiBold" Margin="0,2,0,0"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
-                                                    <TextBlock Text="Est. short message*" Foreground="#9A909F" FontSize="9.5"/>
-                                                    <TextBlock Text="~1.4¢" Foreground="#3B3340" FontSize="12" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                                                    <TextBlock Text="Est. short message*" Foreground="#9A909F" FontSize="12"/>
+                                                    <TextBlock Text="$0.014" Foreground="#3B3340" FontSize="12" FontWeight="SemiBold" Margin="0,2,0,0"/>
                                                 </StackPanel>
                                             </Grid>
                                         </StackPanel>
@@ -592,10 +618,10 @@
                                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel Grid.Column="1" Margin="13,0,10,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="GPT-6 Astra" FontSize="16" FontWeight="SemiBold" Foreground="#302536"/>
-                                                    <TextBlock Text="Hardest reasoning tasks" FontSize="11" Foreground="#817787" Margin="0,3,0,0"/>
+                                                    <TextBlock Text="GPT-6 Astra" FontSize="17" FontWeight="SemiBold" Foreground="#302536"/>
+                                                    <TextBlock Text="Hardest reasoning tasks" FontSize="12" Foreground="#817787" Margin="0,3,0,0"/>
                                                 </StackPanel>
-                                                <TextBlock Grid.Column="2" Text="Details →" Foreground="#5A1A75" FontSize="10.5"
+                                                <TextBlock Grid.Column="2" Text="Details →" Foreground="#5A1A75" FontSize="12"
                                                            FontWeight="SemiBold" VerticalAlignment="Center"/>
                                             </Grid>
                                             <Grid Margin="0,16,0,0">
@@ -604,12 +630,12 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel>
-                                                    <TextBlock Text="AA rank" Foreground="#9A909F" FontSize="9.5"/>
+                                                    <TextBlock Text="AA rank" Foreground="#9A909F" FontSize="12"/>
                                                     <TextBlock Text="#6  ·  Index 53" Foreground="#3B3340" FontSize="12" FontWeight="SemiBold" Margin="0,2,0,0"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
-                                                    <TextBlock Text="Est. short message*" Foreground="#9A909F" FontSize="9.5"/>
-                                                    <TextBlock Text="~7.0¢" Foreground="#3B3340" FontSize="12" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                                                    <TextBlock Text="Est. short message*" Foreground="#9A909F" FontSize="12"/>
+                                                    <TextBlock Text="$0.070" Foreground="#3B3340" FontSize="12" FontWeight="SemiBold" Margin="0,2,0,0"/>
                                                 </StackPanel>
                                             </Grid>
                                         </StackPanel>
@@ -629,10 +655,10 @@
                                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel Grid.Column="1" Margin="13,0,10,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="GPT-5.6 Sol" FontSize="16" FontWeight="SemiBold" Foreground="#302536"/>
-                                                    <TextBlock Text="Strong professional work" FontSize="11" Foreground="#817787" Margin="0,3,0,0"/>
+                                                    <TextBlock Text="GPT-5.6 Sol" FontSize="17" FontWeight="SemiBold" Foreground="#302536"/>
+                                                    <TextBlock Text="Strong professional work" FontSize="12" Foreground="#817787" Margin="0,3,0,0"/>
                                                 </StackPanel>
-                                                <TextBlock Grid.Column="2" Text="Details →" Foreground="#5A1A75" FontSize="10.5"
+                                                <TextBlock Grid.Column="2" Text="Details →" Foreground="#5A1A75" FontSize="12"
                                                            FontWeight="SemiBold" VerticalAlignment="Center"/>
                                             </Grid>
                                             <Grid Margin="0,16,0,0">
@@ -641,12 +667,12 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel>
-                                                    <TextBlock Text="AA rank" Foreground="#9A909F" FontSize="9.5"/>
+                                                    <TextBlock Text="AA rank" Foreground="#9A909F" FontSize="12"/>
                                                     <TextBlock Text="#19  ·  Index 47" Foreground="#3B3340" FontSize="12" FontWeight="SemiBold" Margin="0,2,0,0"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
-                                                    <TextBlock Text="Est. short message*" Foreground="#9A909F" FontSize="9.5"/>
-                                                    <TextBlock Text="~2.8¢" Foreground="#3B3340" FontSize="12" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                                                    <TextBlock Text="Est. short message*" Foreground="#9A909F" FontSize="12"/>
+                                                    <TextBlock Text="$0.028" Foreground="#3B3340" FontSize="12" FontWeight="SemiBold" Margin="0,2,0,0"/>
                                                 </StackPanel>
                                             </Grid>
                                         </StackPanel>
@@ -666,10 +692,10 @@
                                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel Grid.Column="1" Margin="13,0,10,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="GPT-5.6 Luna" FontSize="16" FontWeight="SemiBold" Foreground="#302536"/>
-                                                    <TextBlock Text="Low-cost everyday work" FontSize="11" Foreground="#817787" Margin="0,3,0,0"/>
+                                                    <TextBlock Text="GPT-5.6 Luna" FontSize="17" FontWeight="SemiBold" Foreground="#302536"/>
+                                                    <TextBlock Text="Low-cost everyday work" FontSize="12" Foreground="#817787" Margin="0,3,0,0"/>
                                                 </StackPanel>
-                                                <TextBlock Grid.Column="2" Text="Details →" Foreground="#5A1A75" FontSize="10.5"
+                                                <TextBlock Grid.Column="2" Text="Details →" Foreground="#5A1A75" FontSize="12"
                                                            FontWeight="SemiBold" VerticalAlignment="Center"/>
                                             </Grid>
                                             <Grid Margin="0,16,0,0">
@@ -678,12 +704,12 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel>
-                                                    <TextBlock Text="AA rank" Foreground="#9A909F" FontSize="9.5"/>
+                                                    <TextBlock Text="AA rank" Foreground="#9A909F" FontSize="12"/>
                                                     <TextBlock Text="#5  ·  Index 37" Foreground="#3B3340" FontSize="12" FontWeight="SemiBold" Margin="0,2,0,0"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
-                                                    <TextBlock Text="Est. short message*" Foreground="#9A909F" FontSize="9.5"/>
-                                                    <TextBlock Text="~0.16¢" Foreground="#3B3340" FontSize="12" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                                                    <TextBlock Text="Est. short message*" Foreground="#9A909F" FontSize="12"/>
+                                                    <TextBlock Text="$0.0016" Foreground="#3B3340" FontSize="12" FontWeight="SemiBold" Margin="0,2,0,0"/>
                                                 </StackPanel>
                                             </Grid>
                                         </StackPanel>
@@ -703,10 +729,10 @@
                                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel Grid.Column="1" Margin="13,0,10,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="GLM 5.3 Flash" FontSize="16" FontWeight="SemiBold" Foreground="#302536"/>
-                                                    <TextBlock Text="Cheap deliberate reasoning" FontSize="11" Foreground="#817787" Margin="0,3,0,0"/>
+                                                    <TextBlock Text="GLM 5.3 Flash" FontSize="17" FontWeight="SemiBold" Foreground="#302536"/>
+                                                    <TextBlock Text="Cheap deliberate reasoning" FontSize="12" Foreground="#817787" Margin="0,3,0,0"/>
                                                 </StackPanel>
-                                                <TextBlock Grid.Column="2" Text="Details →" Foreground="#5A1A75" FontSize="10.5"
+                                                <TextBlock Grid.Column="2" Text="Details →" Foreground="#5A1A75" FontSize="12"
                                                            FontWeight="SemiBold" VerticalAlignment="Center"/>
                                             </Grid>
                                             <Grid Margin="0,16,0,0">
@@ -715,12 +741,12 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel>
-                                                    <TextBlock Text="AA rank" Foreground="#9A909F" FontSize="9.5"/>
+                                                    <TextBlock Text="AA rank" Foreground="#9A909F" FontSize="12"/>
                                                     <TextBlock Text="#4  ·  Index 42" Foreground="#3B3340" FontSize="12" FontWeight="SemiBold" Margin="0,2,0,0"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
-                                                    <TextBlock Text="Est. short message*" Foreground="#9A909F" FontSize="9.5"/>
-                                                    <TextBlock Text="~0.08¢" Foreground="#3B3340" FontSize="12" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                                                    <TextBlock Text="Est. short message*" Foreground="#9A909F" FontSize="12"/>
+                                                    <TextBlock Text="$0.0008" Foreground="#3B3340" FontSize="12" FontWeight="SemiBold" Margin="0,2,0,0"/>
                                                 </StackPanel>
                                             </Grid>
                                         </StackPanel>
@@ -728,7 +754,7 @@
                                 </UniformGrid>
 
                                 <TextBlock Text="*Artificial Analysis snapshot: 25 Sep 2026. Rank is within each model page's comparison class. Short-message estimate uses 2k input + 1k output tokens at listed API rates; Cowork can use more context and tool calls."
-                                           Foreground="#8A818E" FontSize="9.5" TextWrapping="Wrap" Margin="2,2,0,0"/>
+                                           Foreground="#8A818E" FontSize="12" TextWrapping="Wrap" Margin="2,2,0,0"/>
                             </StackPanel>
                         </ScrollViewer>
                     </Grid>
@@ -736,7 +762,7 @@
                     <Grid x:Name="UpdatesPage" Visibility="Collapsed">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel Margin="0,4,0,20">
-                                <TextBlock Text="What's new" Foreground="#2D2531" FontSize="27" FontWeight="SemiBold" Margin="0,0,0,20"/>
+                                <TextBlock Text="What's new" Foreground="#2D2531" FontSize="29" FontWeight="SemiBold" Margin="0,0,0,20"/>
                                 <Border Style="{StaticResource CardStyle}" Padding="22">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -745,7 +771,7 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel>
                                             <TextBlock Text="25 Sep" Foreground="#4B1464" FontWeight="SemiBold" FontSize="13"/>
-                                            <TextBlock Text="2026" Foreground="#9A919E" FontSize="10" Margin="0,3,0,0"/>
+                                            <TextBlock Text="2026" Foreground="#9A919E" FontSize="12" Margin="0,3,0,0"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1">
                                             <TextBlock Text="WRN AI Gateway" FontSize="16" FontWeight="SemiBold" Foreground="#302735"/>
@@ -760,7 +786,7 @@
 
                     <Grid x:Name="SupportPage" Visibility="Collapsed">
                         <StackPanel Margin="0,4,0,0">
-                            <TextBlock Text="Support" Foreground="#2D2531" FontSize="27" FontWeight="SemiBold"/>
+                            <TextBlock Text="Support" Foreground="#2D2531" FontSize="29" FontWeight="SemiBold"/>
                             <TextBlock Text="Built and maintained by the Willis Research Network."
                                        Style="{StaticResource MutedTextStyle}" Margin="0,7,0,22"/>
 
@@ -782,7 +808,7 @@
                                                    Foreground="#302735" Margin="0,16,0,0"/>
                                         <TextBlock Text="Open a ready-to-send request template."
                                                    Style="{StaticResource MutedTextStyle}" Margin="0,6,0,16"/>
-                                        <TextBlock Text="Open template →" Foreground="#5A1A75" FontSize="11" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Open template →" Foreground="#5A1A75" FontSize="12" FontWeight="SemiBold"/>
                                     </StackPanel>
                                 </Button>
 
@@ -797,7 +823,7 @@
                                                    Foreground="#302735" Margin="0,16,0,0"/>
                                         <TextBlock Text="Open a short issue template with the useful details."
                                                    Style="{StaticResource MutedTextStyle}" Margin="0,6,0,16"/>
-                                        <TextBlock Text="Open template →" Foreground="#5A1A75" FontSize="11" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Open template →" Foreground="#5A1A75" FontSize="12" FontWeight="SemiBold"/>
                                     </StackPanel>
                                 </Button>
                             </Grid>
@@ -809,7 +835,7 @@
                             Effect="{StaticResource SoftShadow}">
                         <StackPanel>
                             <TextBlock x:Name="ToastTitle" Text="Status" Foreground="White" FontSize="13" FontWeight="SemiBold"/>
-                            <TextBlock x:Name="ToastMessage" Text="" Foreground="#DDD3E0" FontSize="11.5" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                            <TextBlock x:Name="ToastMessage" Text="" Foreground="#DDD3E0" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
                         </StackPanel>
                     </Border>
                 </Grid>

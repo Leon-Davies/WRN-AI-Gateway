@@ -11,7 +11,8 @@ Write-Host "WRN AI Gateway Phase 1 verification" -ForegroundColor Cyan
 
 $required = @(
     (Join-Path $dist "WRN-AI-Gateway.exe"),
-    (Join-Path $dist "ui\MainWindow.xaml")
+    (Join-Path $dist "ui\MainWindow.xaml"),
+    (Join-Path $root "src\WRN.AIGateway\assets\wrn-ai-gateway.ico")
 )
 foreach ($path in $required) {
     if (-not (Test-Path $path)) { throw "Missing build output: $path" }
@@ -82,11 +83,36 @@ $requiredUi = @(
     "ModelLunaButton",
     "ModelGlmButton",
     "ModelRequestButton",
-    "ReportBugButton"
+    "ReportBugButton",
+    "Brought to you by the Willis Research Network",
+    'Height="164"',
+    'Tag="wtw"',
+    'Tag="wrn"'
 )
 foreach ($required in $requiredUi) {
     if (-not $xaml.Contains($required)) {
         throw "Required owner-polish UI element is missing: $required"
+    }
+}
+
+if ($xaml.Contains("¢")) {
+    throw "Model pricing must be displayed in USD, not cents."
+}
+
+$controller = Get-Content (Join-Path $src "WRN.AIGateway\AppController.cs") -Raw
+foreach ($requiredControllerText in @(
+    "OpenOutlookDraft",
+    "mailto:",
+    "Leon.Davies@wtwco.com",
+    '$0.0018',
+    '$0.014',
+    '$0.070',
+    '$0.028',
+    '$0.0016',
+    '$0.0008'
+)) {
+    if (-not $controller.Contains($requiredControllerText)) {
+        throw "Required controller behaviour is missing: $requiredControllerText"
     }
 }
 

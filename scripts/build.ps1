@@ -54,6 +54,8 @@ $references = @(
     (Join-Path $wpf "PresentationFramework.dll")
 )
 
+$icon = Join-Path $src "assets\wrn-ai-gateway.ico"
+
 $args = @(
     "/nologo",
     "/target:winexe",
@@ -61,6 +63,10 @@ $args = @(
     "/optimize+",
     "/out:$dist\WRN-AI-Gateway.exe"
 )
+
+if (Test-Path $icon) {
+    $args += "/win32icon:$icon"
+}
 
 foreach ($reference in $references) {
     if (-not (Test-Path $reference)) {

@@ -128,6 +128,7 @@ namespace WRN.AIGateway
             {
                 ShowSupportTemplate(
                     "Request a model",
+                    "WRN AI model request",
                     "WRN AI model request" + Environment.NewLine + Environment.NewLine +
                     "Model:" + Environment.NewLine +
                     "What would you like to use it for?" + Environment.NewLine +
@@ -139,6 +140,7 @@ namespace WRN.AIGateway
             {
                 ShowSupportTemplate(
                     "Report a problem",
+                    "WRN AI Gateway issue",
                     "WRN AI Gateway issue" + Environment.NewLine + Environment.NewLine +
                     "What happened?" + Environment.NewLine +
                     "What did you expect to happen?" + Environment.NewLine +
@@ -326,7 +328,7 @@ namespace WRN.AIGateway
             var maker = new TextBlock
             {
                 Text = model.Maker + "  ·  Available in WRN Claude",
-                FontSize = 11,
+                FontSize = 12.5,
                 Foreground = Brush("#817787"),
                 Margin = new Thickness(0, 5, 0, 20)
             };
@@ -353,7 +355,7 @@ namespace WRN.AIGateway
             var caveat = new TextBlock
             {
                 Text = "*Short-message estimate assumes 2,000 input + 1,000 output tokens at the API rates shown by Artificial Analysis. Cowork can send substantially more context and may make multiple model/tool calls. AA rank is within the model page's current comparison class, so ranks are not a universal cross-model league table.",
-                FontSize = 10,
+                FontSize = 13,
                 Foreground = Brush("#8A818E"),
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 16, 0, 20)
@@ -384,7 +386,7 @@ namespace WRN.AIGateway
             dialog.ShowDialog();
         }
 
-        private void ShowSupportTemplate(string title, string template)
+        private void ShowSupportTemplate(string title, string subject, string template)
         {
             var dialog = CreateDialog(title, 610, 500);
             var body = new StackPanel { Margin = new Thickness(28) };
@@ -400,7 +402,7 @@ namespace WRN.AIGateway
             body.Children.Add(new TextBlock
             {
                 Text = "Please send this request to Leon.Davies@wtwco.com",
-                FontSize = 12,
+                FontSize = 13.5,
                 Foreground = Brush("#5A1A75"),
                 FontWeight = FontWeights.SemiBold,
                 Margin = new Thickness(0, 7, 0, 18)
@@ -418,7 +420,7 @@ namespace WRN.AIGateway
                 BorderThickness = new Thickness(1),
                 Background = Brushes.White,
                 Foreground = Brush("#3B3340"),
-                FontSize = 12,
+                FontSize = 13.5,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto
             };
             body.Children.Add(box);
@@ -430,7 +432,15 @@ namespace WRN.AIGateway
                 Margin = new Thickness(0, 18, 0, 0)
             };
 
-            var copy = DialogButton("Copy template", true);
+            var outlook = DialogButton("Open in Outlook", true);
+            outlook.Click += delegate
+            {
+                OpenOutlookDraft("Leon.Davies@wtwco.com", subject, template);
+            };
+            actions.Children.Add(outlook);
+
+            var copy = DialogButton("Copy template", false);
+            copy.Margin = new Thickness(10, 0, 0, 0);
             copy.Click += delegate
             {
                 Clipboard.SetText(template);
@@ -474,13 +484,13 @@ namespace WRN.AIGateway
             panel.Children.Add(new TextBlock
             {
                 Text = label,
-                FontSize = 9.5,
+                FontSize = 13,
                 Foreground = Brush("#8E8492")
             });
             panel.Children.Add(new TextBlock
             {
                 Text = value,
-                FontSize = 14,
+                FontSize = 15,
                 FontWeight = FontWeights.SemiBold,
                 Foreground = Brush("#382D3D"),
                 Margin = new Thickness(0, 4, 0, 0)
@@ -505,7 +515,7 @@ namespace WRN.AIGateway
             return new TextBlock
             {
                 Text = text,
-                FontSize = 13,
+                FontSize = 14,
                 FontWeight = FontWeights.SemiBold,
                 Foreground = Brush("#3B3340"),
                 Margin = new Thickness(0, 0, 0, 5)
@@ -517,7 +527,7 @@ namespace WRN.AIGateway
             return new TextBlock
             {
                 Text = text,
-                FontSize = 12,
+                FontSize = 13.5,
                 Foreground = Brush("#6F6574"),
                 TextWrapping = TextWrapping.Wrap,
                 LineHeight = 18,
@@ -533,7 +543,7 @@ namespace WRN.AIGateway
                 Height = 38,
                 MinWidth = 96,
                 Padding = new Thickness(16, 0, 16, 0),
-                FontSize = 11.5,
+                FontSize = 13,
                 FontWeight = FontWeights.SemiBold,
                 Cursor = Cursors.Hand,
                 BorderThickness = new Thickness(0),
@@ -559,7 +569,7 @@ namespace WRN.AIGateway
                         "DeepSeek",
                         "#7 / 115",
                         "Index 39",
-                        "~0.18¢",
+                        "$0.0018",
                         "$0.27",
                         "An open-weight model designed to deliver strong reasoning at very high output speed and low token prices. Artificial Analysis measures it as one of the stronger models in its open-weight comparison class.",
                         "Good for high-volume everyday Cowork work, quick research, drafting, iterative analysis and tasks where speed and cost matter. For the hardest reasoning or highest-value synthesis, GPT-6 Astra may justify its much higher cost.",
@@ -573,7 +583,7 @@ namespace WRN.AIGateway
                         "Anthropic",
                         "#54 / 211",
                         "Index 38",
-                        "~1.4¢",
+                        "$0.014",
                         "$5.09",
                         "Anthropic's general-purpose Claude model in the current WRN list. It combines solid intelligence with good output speed and the familiar Claude style.",
                         "Good for writing, document work, summarisation and tool-heavy workflows where you want a balanced model rather than maximum reasoning. Its max-effort benchmark is unusually verbose, which raises cost on long agentic tasks.",
@@ -587,7 +597,7 @@ namespace WRN.AIGateway
                         "OpenAI",
                         "#6 / 211",
                         "Index 53",
-                        "~7.0¢",
+                        "$0.070",
                         "$3.26",
                         "A frontier reasoning model and the highest-intelligence OpenAI option currently exposed in WRN Claude. It trades speed and price for stronger performance on difficult tasks.",
                         "Use for the hardest analysis, complex multi-step reasoning, important synthesis and work where getting the best answer matters more than latency or cost. It is usually excessive for routine drafting or simple queries.",
@@ -601,7 +611,7 @@ namespace WRN.AIGateway
                         "OpenAI",
                         "#19 / 211",
                         "Index 47",
-                        "~2.8¢",
+                        "$0.028",
                         "$1.99",
                         "A strong professional reasoning model that remains capable for research, structured analysis and polished knowledge work. It is less expensive than GPT-6 Astra while retaining substantially more capability than lightweight options.",
                         "Good for complex professional work when Astra is unnecessary, including detailed analysis, technical writing and difficult document tasks. Artificial Analysis now flags GPT-5.6 Sol as superseded by GPT-6 Sol, but it remains in the current WRN Claude catalogue.",
@@ -615,7 +625,7 @@ namespace WRN.AIGateway
                         "OpenAI",
                         "#5 / 174",
                         "Index 37",
-                        "~0.16¢",
+                        "$0.0016",
                         "$0.18",
                         "A lightweight OpenAI reasoning model designed for cost-sensitive workloads. It is much cheaper and faster than the larger OpenAI options while still scoring well within its price class.",
                         "Good for routine summarisation, drafting, extraction, quick analysis and high-volume tasks. Artificial Analysis now flags GPT-5.6 Luna as superseded by GPT-6 Luna, but it remains in the current WRN Claude catalogue.",
@@ -629,7 +639,7 @@ namespace WRN.AIGateway
                         "Z AI",
                         "#4 / 115",
                         "Index 42",
-                        "~0.08¢",
+                        "$0.0008",
                         "$0.25",
                         "A very low-cost open-weight reasoning model with strong benchmark intelligence for its class. Its main trade-off is slower output and relatively high verbosity.",
                         "Good for inexpensive reasoning, structured analysis and workloads where response time is less important. DeepSeek is usually the better low-cost choice when speed matters.",
@@ -637,6 +647,47 @@ namespace WRN.AIGateway
                         "https://artificialanalysis.ai/models/glm-5-3-flash")
                 }
             };
+        }
+
+        private static void OpenOutlookDraft(string to, string subject, string body)
+        {
+            var mailto =
+                "mailto:" + Uri.EscapeDataString(to) +
+                "?subject=" + Uri.EscapeDataString(subject) +
+                "&body=" + Uri.EscapeDataString(body);
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = mailto,
+                    UseShellExecute = true
+                });
+                return;
+            }
+            catch { }
+
+            var outlookUri =
+                "ms-outlook://compose?to=" + Uri.EscapeDataString(to) +
+                "&subject=" + Uri.EscapeDataString(subject) +
+                "&body=" + Uri.EscapeDataString(body);
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = outlookUri,
+                    UseShellExecute = true
+                });
+            }
+            catch
+            {
+                MessageBox.Show(
+                    "Outlook could not be opened. Copy the template and send it to Leon.Davies@wtwco.com.",
+                    "WRN AI Gateway",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
         }
 
         private static void OpenExternalUrl(string url)

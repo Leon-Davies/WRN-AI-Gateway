@@ -17,6 +17,7 @@ $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 $framework = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319"
 $setupSource = Join-Path $root "src\WRN.AIGateway.Setup\Setup.cs"
 $setupExe = Join-Path $release "WRN-AI-Gateway-Setup.exe"
+$icon = Join-Path $root "src\WRN.AIGateway\assets\wrn-ai-gateway.ico"
 
 $compileArgs = @(
     "/nologo",
@@ -28,9 +29,12 @@ $compileArgs = @(
     "/reference:$framework\System.Core.dll",
     "/reference:$framework\Microsoft.CSharp.dll",
     "/reference:$framework\System.Drawing.dll",
-    "/reference:$framework\System.Windows.Forms.dll",
-    $setupSource
+    "/reference:$framework\System.Windows.Forms.dll"
 )
+if (Test-Path $icon) {
+    $compileArgs += "/win32icon:$icon"
+}
+$compileArgs += $setupSource
 & $csc $compileArgs
 if ($LASTEXITCODE -ne 0) { throw "Setup compilation failed with exit code $LASTEXITCODE" }
 
@@ -42,7 +46,7 @@ $readme = @(
     "3. Open WRN AI Gateway from the desktop or Start menu.",
     "",
     "No administrator rights are required.",
-    "This preview does not change Claude configuration."
+    "Your normal Claude history is not changed by the launcher installation."
 )
 $readme | Set-Content (Join-Path $release "README-FIRST.txt") -Encoding UTF8
 $Version | Set-Content (Join-Path $release "VERSION.txt") -Encoding ASCII

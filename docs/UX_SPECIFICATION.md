@@ -227,7 +227,7 @@ Each model card should show concise, decision-useful information for non-technic
 - model name;
 - a short plain-English role/use cue;
 - a current Artificial Analysis intelligence ranking/index;
-- an explicitly labelled estimated short-message cost;
+- an explicitly labelled estimated short-message cost in USD;
 - a Details action.
 
 The Details view should explain:
@@ -260,3 +260,52 @@ Selecting an action opens an in-app template and displays:
 **Please send this request to Leon.Davies@wtwco.com**
 
 The problem template must remind users not to include API keys, passwords, or confidential prompt/file contents.
+
+
+## 20. Readability floor
+
+WRN AI Gateway is intended for non-technical colleagues and should not rely on tiny helper text.
+
+Guidance:
+
+- navigation text should remain comfortably readable at normal Windows scaling;
+- helper/metric labels should normally be at least 12 px equivalent in the current WPF shell;
+- important explanatory/body copy should normally be 13–14 px equivalent or larger;
+- do not shrink text merely to make a card fit — simplify or wrap the copy instead;
+- verify the UI at the supported minimum 980×680 window size after typography changes.
+
+## 21. Home action hierarchy
+
+The four action/reference cards beneath the hero form a balanced 2×2 visual grid.
+
+Requirements:
+
+- WTW Claude, WRN Claude, Model spotlight and What's new use equal card width and height;
+- WTW Claude and WRN Claude remain the strongest visual actions;
+- WTW Claude uses a distinct cool/blue treatment;
+- WRN Claude uses a distinct WRN-purple treatment;
+- the two launch cards must still include text labels so mode choice is not colour-only.
+
+## 22. Support email handoff
+
+Support templates should offer:
+
+- **Open in Outlook**;
+- **Copy template**;
+- **Close**.
+
+Open in Outlook must create a populated draft addressed to Leon.Davies@wtwco.com; it must never send automatically.
+
+Use the Windows registered mailto handler first so managed Outlook receives the normal compose request. An Outlook-specific compose URI may be used only as a fallback.
+
+## 23. Application identity
+
+The launcher and installer should use a recognisable WRN AI Gateway application icon instead of the default Windows executable icon.
+
+The current icon treatment is:
+
+- WRN purple rounded tile;
+- white W;
+- small green status/accent dot.
+
+The executable icon should propagate naturally to taskbar and shortcut surfaces without requiring administrator rights.
