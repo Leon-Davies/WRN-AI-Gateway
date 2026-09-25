@@ -141,7 +141,9 @@ If central provisioning is added later, it must provision a per-user credential 
 
 ## Current UI status
 
-The Settings page is intentionally reduced to three actions: Connect/Replace, Test, and Remove.
+The Settings page is intentionally reduced to three centered actions: Connect/Replace, Test, and Remove.
+
+A small info button sits beside the action group. Optional connection/security details are available there instead of occupying the main Settings surface.
 
 The key dialog is also compact: title, masked key field, action buttons, and error/progress text only when needed.
 
