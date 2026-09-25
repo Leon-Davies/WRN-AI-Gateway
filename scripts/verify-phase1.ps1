@@ -37,13 +37,17 @@ foreach ($pattern in $forbidden) {
     }
 }
 
-$brandPath = Join-Path $root "src\WRN.AIGateway\local-assets\wrn-hero.png"
-if (Test-Path $brandPath) {
+$brandDir = Join-Path $root "src\WRN.AIGateway\local-assets"
+if (Test-Path $brandDir) {
+    $brandFiles = @(Get-ChildItem $brandDir -File -ErrorAction SilentlyContinue)
     Push-Location $root
     try {
-        & git check-ignore --quiet "src/WRN.AIGateway/local-assets/wrn-hero.png"
-        if ($LASTEXITCODE -ne 0) {
-            throw "Local WRN branding asset is not ignored by git."
+        foreach ($brandFile in $brandFiles) {
+            $relative = "src/WRN.AIGateway/local-assets/" + $brandFile.Name
+            & git check-ignore --quiet $relative
+            if ($LASTEXITCODE -ne 0) {
+                throw "Local WRN branding asset is not ignored by git: $relative"
+            }
         }
     }
     finally {
@@ -67,9 +71,18 @@ foreach ($placeholder in $visiblePlaceholders) {
 
 $requiredUi = @(
     "ActionCardButtonStyle",
-    "ArtificialAnalysisButton",
+    "HeroImageA",
+    "HeroImageB",
     "ModelsShortcutButton",
-    "UpdatesShortcutButton"
+    "UpdatesShortcutButton",
+    "ModelDeepSeekButton",
+    "ModelSonnetButton",
+    "ModelAstraButton",
+    "ModelSolButton",
+    "ModelLunaButton",
+    "ModelGlmButton",
+    "ModelRequestButton",
+    "ReportBugButton"
 )
 foreach ($required in $requiredUi) {
     if (-not $xaml.Contains($required)) {
@@ -79,7 +92,7 @@ foreach ($required in $requiredUi) {
 
 Write-Host "PASS: native app builds" -ForegroundColor Green
 Write-Host "PASS: visible development placeholders removed" -ForegroundColor Green
-Write-Host "PASS: clickable action tiles and benchmark link present" -ForegroundColor Green
+Write-Host "PASS: clickable launch/model/support tiles and rotating hero layers present" -ForegroundColor Green
 Write-Host "PASS: no Claude package/history manipulation code in Phase 1 source" -ForegroundColor Green
 Write-Host "PASS: local corporate brand asset is excluded from git" -ForegroundColor Green
 Write-Host "PASS: Phase 1 remains standard-user only" -ForegroundColor Green

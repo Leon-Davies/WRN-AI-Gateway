@@ -198,3 +198,65 @@ The personalised greeting may type in once on launch as a short product flourish
 The Models view may link to a reputable external model-comparison source for current benchmark and pricing context.
 
 External links must be clearly labelled and open in the user's normal browser. They should supplement WRN's curated catalogue rather than replace it.
+
+
+## 16. Rotating WRN hero
+
+The Home greeting banner may rotate through approved WRN brand imagery.
+
+Required behaviour:
+
+- cross-fade rather than abrupt replacement;
+- a calm interval of several seconds between images;
+- greeting text remains stable and readable;
+- if Windows client-area animations are disabled, change images without animation;
+- branding assets must only be distributed from an approved repository/package location.
+
+## 17. ZDR mode labelling
+
+Both WTW Claude and WRN Claude are presented as Zero Data Retention experiences.
+
+The WRN card should remain explicit that its ZDR statement applies to model inference through WTW OpenRouter. Do not imply that ZDR means data never leaves WTW or that unrelated tools/services inherit the same retention policy automatically.
+
+## 18. Models is an information surface, not a model picker
+
+The Models page explains the models currently exposed in WRN Claude/Cowork. Clicking a model in WRN AI Gateway must not select or launch that model.
+
+Each model card should show concise, decision-useful information for non-technical users:
+
+- model name;
+- a short plain-English role/use cue;
+- a current Artificial Analysis intelligence ranking/index;
+- an explicitly labelled estimated short-message cost;
+- a Details action.
+
+The Details view should explain:
+
+- what the model is;
+- what work it is a good choice for;
+- benchmark/cost context;
+- limitations or important supersession information where relevant;
+- a model-specific Artificial Analysis link.
+
+Benchmark ranks must be described as belonging to the relevant Artificial Analysis comparison class, not as a universal league table. Cost-per-message figures are estimates only and must state their token assumption. Cowork may use more context and multiple model/tool calls.
+
+The model reference data shown in the launcher is a dated snapshot until the signed central catalogue becomes authoritative.
+
+## 19. Support ownership and templates
+
+Support should state:
+
+**Built and maintained by the Willis Research Network.**
+
+The primary actions are:
+
+- Request a model;
+- Report a problem.
+
+Both actions use the same clickable-card hover/focus treatment as other interactive cards.
+
+Selecting an action opens an in-app template and displays:
+
+**Please send this request to Leon.Davies@wtwco.com**
+
+The problem template must remind users not to include API keys, passwords, or confidential prompt/file contents.

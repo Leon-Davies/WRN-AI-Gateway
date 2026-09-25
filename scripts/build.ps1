@@ -28,12 +28,19 @@ New-Item -ItemType Directory -Path $assetOut | Out-Null
 
 Copy-Item (Join-Path $src "ui\MainWindow.xaml") (Join-Path $uiOut "MainWindow.xaml")
 
-$localHero = Join-Path $src "local-assets\wrn-hero.png"
-if (Test-Path $localHero) {
-    Copy-Item $localHero (Join-Path $assetOut "wrn-hero.png")
-    Write-Host "Using local WRN branding asset (not tracked by git)." -ForegroundColor DarkMagenta
+$localAssetDir = Join-Path $src "local-assets"
+$localHeroes = @()
+if (Test-Path $localAssetDir) {
+    $localHeroes = @(Get-ChildItem $localAssetDir -Filter "wrn-hero*.png" -File | Sort-Object Name)
+}
+
+if ($localHeroes.Count -gt 0) {
+    foreach ($hero in $localHeroes) {
+        Copy-Item $hero.FullName (Join-Path $assetOut $hero.Name)
+    }
+    Write-Host ("Using {0} local WRN branding assets (not tracked by git)." -f $localHeroes.Count) -ForegroundColor DarkMagenta
 } else {
-    Write-Host "No local brand image found; the built-in gradient fallback will be used." -ForegroundColor DarkYellow
+    Write-Host "No local brand images found; the built-in gradient fallback will be used." -ForegroundColor DarkYellow
 }
 
 $references = @(
