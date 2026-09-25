@@ -2,6 +2,8 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.IO.Compression;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
@@ -94,7 +96,9 @@ namespace WRN.AIGateway.Setup
         {
             var source = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "app");
             var sourceExe = Path.Combine(source, "WRN-AI-Gateway.exe");
-            if (!File.Exists(sourceExe))
+            var hasExternalPayload = File.Exists(sourceExe);
+            var hasEmbeddedPayload = HasEmbeddedPayload();
+            if (!hasExternalPayload && !hasEmbeddedPayload)
                 throw new InvalidOperationException("The application files are missing from this setup package.");
 
             var installRoot = Path.Combine(
@@ -111,7 +115,8 @@ namespace WRN.AIGateway.Setup
             _progress.Value = 15;
             Application.DoEvents();
             Directory.CreateDirectory(installRoot);
-            CopyDirectory(source, staging);
+            if (hasExternalPayload) CopyDirectory(source, staging);
+            else ExtractEmbeddedPayload(staging);
 
             _status.Text = "Installing application...";
             _progress.Value = 55;
@@ -134,6 +139,48 @@ namespace WRN.AIGateway.Setup
             _installButton.Click -= InstallButtonClick;
             _installButton.Click += delegate { Launch(Path.Combine(current, "WRN-AI-Gateway.exe")); };
             Launch(Path.Combine(current, "WRN-AI-Gateway.exe"));
+        }
+
+        private const string PayloadResourceName = "WRN.AIGateway.Payload.zip";
+
+        private static bool HasEmbeddedPayload()
+        {
+            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(PayloadResourceName))
+                return stream != null;
+        }
+
+        private static void ExtractEmbeddedPayload(string destination)
+        {
+            Directory.CreateDirectory(destination);
+            var root = Path.GetFullPath(destination) + Path.DirectorySeparatorChar;
+
+            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(PayloadResourceName))
+            {
+                if (stream == null)
+                    throw new InvalidOperationException("The embedded application payload is missing.");
+
+                using (var archive = new ZipArchive(stream, ZipArchiveMode.Read, false))
+                {
+                    foreach (var entry in archive.Entries)
+                    {
+                        var relative = entry.FullName.Replace('/', Path.DirectorySeparatorChar);
+                        var target = Path.GetFullPath(Path.Combine(destination, relative));
+                        if (!target.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                            throw new InvalidOperationException("The embedded application payload is invalid.");
+
+                        if (string.IsNullOrEmpty(entry.Name))
+                        {
+                            Directory.CreateDirectory(target);
+                            continue;
+                        }
+
+                        Directory.CreateDirectory(Path.GetDirectoryName(target));
+                        using (var input = entry.Open())
+                        using (var output = File.Create(target))
+                            input.CopyTo(output);
+                    }
+                }
+            }
         }
 
         private static void CopyDirectory(string source, string destination)
