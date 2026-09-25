@@ -575,113 +575,22 @@
                     </Grid>
 
                     <Grid x:Name="SettingsPage" Visibility="Collapsed">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                                      Padding="20,6,20,12">
-                            <StackPanel Margin="0,4,0,10">
-                                <TextBlock Text="Settings" Foreground="#2D2531" FontSize="29" FontWeight="SemiBold"/>
-                                <TextBlock Text="Manage the connection used by WRN Claude on this PC."
-                                           Style="{StaticResource MutedTextStyle}" Margin="0,7,0,22"/>
+                        <StackPanel Margin="20,10,20,0">
+                            <TextBlock Text="Settings" Foreground="#2D2531" FontSize="29" FontWeight="SemiBold"
+                                       Margin="0,0,0,24"/>
 
-                                <Border Background="White" BorderBrush="#E4DDE7" BorderThickness="1"
-                                        CornerRadius="16" Padding="24" Effect="{StaticResource SoftShadow}">
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
-
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-
-                                            <Border Width="46" Height="46" CornerRadius="13" Background="#F0E8F4">
-                                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE72E;" Foreground="#5B1E72"
-                                                           FontSize="19" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-
-                                            <StackPanel Grid.Column="1" Margin="15,0,20,0" VerticalAlignment="Center">
-                                                <TextBlock Text="OpenRouter connection" FontSize="18" FontWeight="SemiBold"
-                                                           Foreground="#302735"/>
-                                                <TextBlock x:Name="CredentialStatusDetail"
-                                                           Text="Checking this PC…"
-                                                           Style="{StaticResource MutedTextStyle}" Margin="0,5,0,0"
-                                                           TextWrapping="Wrap"/>
-                                            </StackPanel>
-
-                                            <Border x:Name="CredentialStatusBadge" Grid.Column="2"
-                                                    Background="#F4EFF6" CornerRadius="12" Padding="12,7"
-                                                    VerticalAlignment="Center">
-                                                <TextBlock x:Name="CredentialStatusText" Text="Checking"
-                                                           Foreground="#694B74" FontSize="12" FontWeight="SemiBold"/>
-                                            </Border>
-                                        </Grid>
-
-                                        <Border Grid.Row="1" Background="#F8F6F9" CornerRadius="12"
-                                                Padding="16" Margin="0,20,0,18">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="24"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0">
-                                                    <TextBlock Text="Security" Foreground="#817787" FontSize="12"/>
-                                                    <TextBlock Text="Protected for your Windows account"
-                                                               Foreground="#3B3340" FontSize="13" FontWeight="SemiBold"
-                                                               Margin="0,4,0,0" TextWrapping="Wrap"/>
-                                                    <TextBlock Text="Your API key is encrypted with Windows and is never shown again after saving."
-                                                               Foreground="#817787" FontSize="12" TextWrapping="Wrap"
-                                                               Margin="0,5,0,0"/>
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="2">
-                                                    <TextBlock Text="Connection" Foreground="#817787" FontSize="12"/>
-                                                    <TextBlock x:Name="CredentialValidatedText" Text="Not connected"
-                                                               Foreground="#3B3340" FontSize="13" FontWeight="SemiBold"
-                                                               Margin="0,4,0,0" TextWrapping="Wrap"/>
-                                                    <TextBlock x:Name="CredentialGatewayText" Text="Local gateway will be configured automatically."
-                                                               Foreground="#817787" FontSize="12" TextWrapping="Wrap"
-                                                               Margin="0,5,0,0"/>
-                                                </StackPanel>
-                                            </Grid>
-                                        </Border>
-
-                                        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
-                                            <Button x:Name="CredentialRemoveButton" AutomationProperties.Name="Remove OpenRouter key"
-                                                    Content="Remove" Height="40" MinWidth="92" Margin="0,0,10,0"
-                                                    Style="{StaticResource SecondaryButtonStyle}"/>
-                                            <Button x:Name="CredentialTestButton" AutomationProperties.Name="Test OpenRouter connection"
-                                                    Content="Test connection" Height="40" MinWidth="126" Margin="0,0,10,0"
-                                                    Style="{StaticResource SecondaryButtonStyle}"/>
-                                            <Button x:Name="CredentialConnectButton" AutomationProperties.Name="Connect OpenRouter"
-                                                    Content="Connect OpenRouter" Height="40" MinWidth="152"
-                                                    Style="{StaticResource PrimaryButtonStyle}"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
-
-                                <Border Background="#F1ECF3" CornerRadius="14" Padding="20" Margin="0,18,0,0">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE946;" Foreground="#5B1E72"
-                                                   FontSize="18" Margin="0,2,14,0"/>
-                                        <StackPanel Grid.Column="1">
-                                            <TextBlock Text="What happens when you connect?"
-                                                       Foreground="#3B3340" FontSize="14" FontWeight="SemiBold"/>
-                                            <TextBlock Text="WRN AI Gateway validates the key with OpenRouter, protects it for your Windows account, and prepares the local connection used by WRN Claude. The key is not displayed in this app after it is saved."
-                                                       Foreground="#6F6574" FontSize="13" TextWrapping="Wrap"
-                                                       LineHeight="18" Margin="0,6,0,0"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
+                            <StackPanel Orientation="Horizontal">
+                                <Button x:Name="CredentialConnectButton" AutomationProperties.Name="Connect OpenRouter"
+                                        Content="Connect" Height="42" MinWidth="112" Margin="0,0,10,0"
+                                        Style="{StaticResource PrimaryButtonStyle}"/>
+                                <Button x:Name="CredentialTestButton" AutomationProperties.Name="Test OpenRouter connection"
+                                        Content="Test" Height="42" MinWidth="92" Margin="0,0,10,0"
+                                        Style="{StaticResource SecondaryButtonStyle}"/>
+                                <Button x:Name="CredentialRemoveButton" AutomationProperties.Name="Remove OpenRouter key"
+                                        Content="Remove" Height="42" MinWidth="92"
+                                        Style="{StaticResource SecondaryButtonStyle}"/>
                             </StackPanel>
-                        </ScrollViewer>
+                        </StackPanel>
                     </Grid>
 
                     <Grid x:Name="SupportPage" Visibility="Collapsed">
