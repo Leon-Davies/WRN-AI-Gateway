@@ -88,7 +88,7 @@ $requiredUi = @(
     'Height="164"',
     'Tag="wtw"',
     'Tag="wrn"',
-    'Padding="7,4,7,8"'
+    'Padding="20,6,20,12"'
 )
 foreach ($required in $requiredUi) {
     if (-not $xaml.Contains($required)) {

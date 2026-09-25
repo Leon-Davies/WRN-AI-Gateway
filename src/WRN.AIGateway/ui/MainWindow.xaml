@@ -359,7 +359,7 @@
                 <Grid Grid.Row="1" Margin="30,0,30,28">
                     <Grid x:Name="HomePage">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                                      Padding="7,4,7,8">
+                                      Padding="20,6,20,12">
                             <StackPanel Margin="0,4,0,10">
                                 <Border Height="196" CornerRadius="20" ClipToBounds="True" Effect="{StaticResource SoftShadow}">
                                     <Grid>
@@ -468,7 +468,7 @@
                                                     <TextBlock Text="ZDR" Foreground="#237157" FontSize="12" FontWeight="Bold"/>
                                                 </Border>
                                             </Grid>
-                                            <TextBlock Grid.Row="1" Text="Zero Data Retention enforced for model inference."
+                                            <TextBlock Grid.Row="1" Text="ZDR enforced for model inference."
                                                        Style="{StaticResource MutedTextStyle}" Margin="0,18,0,16"/>
                                             <StackPanel Grid.Row="2" Orientation="Horizontal">
                                                 <TextBlock Text="Open" Foreground="#5A1A75" FontSize="12" FontWeight="SemiBold"/>
@@ -527,7 +527,7 @@
 
                     <Grid x:Name="ModelsPage" Visibility="Collapsed">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                                      Padding="7,4,7,8">
+                                      Padding="20,6,20,12">
                             <StackPanel Margin="0,4,0,20">
                                 <TextBlock Text="Models" Foreground="#2D2531" FontSize="29" FontWeight="SemiBold" Margin="0,0,0,18"/>
 
