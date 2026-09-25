@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "release": 2,
-  "publishedAt": "2026-09-25T13:00:00+01:00",
+  "release": 3,
+  "publishedAt": "2026-09-25T13:20:00+01:00",
   "minimumAppVersion": "0.2.0",
   "defaultModelKey": "gpt6-luna",
   "benchmarkSnapshot": "2026-09-25",
   "benchmarkNote": "Artificial Analysis Intelligence Index: higher is better. AA rank: lower is better within that model page's comparison class; ranks across different classes are not directly comparable.",
-  "announcement": "Remote catalogue propagation test.",
+  "announcement": "WRN model shortlist refreshed.",
   "models": [
     {
       "key": "gpt6-luna",
@@ -27,7 +27,7 @@
       "qualificationVersion": "wrn-model-refresh-v1",
       "initial": "L",
       "accent": "#74558B",
-      "tagline": "Recommended everyday work — remotely updated",
+      "tagline": "Recommended for everyday work",
       "description": "A low-cost, large-context reasoning model suited to routine professional work where responsiveness and cost matter.",
       "goodFor": "Email, summarisation, extraction, routine analysis, everyday Office work, document transformation and routine coding.",
       "limitations": "For difficult research, high-value synthesis or the hardest coding and analytical work, use a frontier model instead.",
@@ -144,13 +144,8 @@
   "changelog": [
     {
       "date": "2026-09-25",
-      "title": "Remote catalogue propagation test",
-      "body": "Demonstrates a signed model-metadata update without rebuilding WRN AI Gateway."
-    },
-    {
-      "date": "2026-09-25",
-      "title": "Initial signed beta catalogue",
-      "body": "Introduces GPT-6 Luna, Claude Opus 5.5, GPT-6 Astra and DeepSeek V4.1 Flash as the first remotely managed WRN candidate set."
+      "title": "Model shortlist refreshed",
+      "body": "GPT-6 Luna is recommended for everyday work, with Claude Opus 5.5, GPT-6 Astra and DeepSeek V4.1 Flash covering advanced, specialist and high-volume work."
     }
   ]
 }
