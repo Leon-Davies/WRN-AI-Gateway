@@ -488,7 +488,7 @@ namespace WRN.AIGateway
                     ? "Replace OpenRouter key"
                     : "Connect OpenRouter",
                 600,
-                440);
+                400);
 
             var body =
                 new StackPanel
