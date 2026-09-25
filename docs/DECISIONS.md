@@ -151,3 +151,21 @@ The launcher should ask for a normal close and transition only after process exi
 Do not bind catalogue semantics to GitHub, SharePoint, or a specific web host.
 
 The production backend can be chosen later based on access and policy while clients keep the same signed-catalogue contract.
+
+
+## ADR-016 — Native WPF shell on built-in .NET Framework
+
+**Status:** Accepted
+
+The initial WRN AI Gateway Windows application uses WPF on the .NET Framework already present on managed Windows.
+
+Reason:
+
+- no separate runtime installation for colleagues;
+- no administrator requirement;
+- native Windows accessibility and shortcut behaviour;
+- small deployment footprint;
+- sufficient control to deliver a polished internal application;
+- avoids making Electron, Node.js, Python, WSL, or a developer SDK a user dependency.
+
+The production code may be modernised later if a replacement preserves the same no-admin and no-runtime-install guarantees.

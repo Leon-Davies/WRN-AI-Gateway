@@ -1,0 +1,6 @@
+dist/
+src/WRN.AIGateway/local-assets/*
+*.user
+*.suo
+.vscode/
+release/
