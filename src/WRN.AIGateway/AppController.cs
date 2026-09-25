@@ -699,9 +699,9 @@ namespace WRN.AIGateway
                 new TextBlock
                 {
                     Text =
-                        "• Your key is checked before it is saved.\n\n"
-                        + "• It is protected for your Windows account and is not shown again.\n\n"
-                        + "• WRN Claude uses this connection when WRN mode is enabled.",
+                        "• OpenRouter is the service WRN Claude uses to access different AI models.\n\n"
+                        + "• It lets us add or update models without reinstalling the app.\n\n"
+                        + "• The models available in WRN Claude are managed through the WRN model catalogue.",
                     FontSize = 13.5,
                     Foreground = Brush("#5F5664"),
                     TextWrapping = TextWrapping.Wrap,
