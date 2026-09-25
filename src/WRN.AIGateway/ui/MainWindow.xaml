@@ -697,6 +697,32 @@
                                     </StackPanel>
                                 </Button>
                             </Grid>
+
+                            <Button x:Name="CollectDiagnosticsButton"
+                                    AutomationProperties.Name="Collect WRN AI Gateway diagnostics"
+                                    Style="{StaticResource ActionCardButtonStyle}"
+                                    Padding="22" Margin="0,16,0,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="44" Height="44" CornerRadius="12" Background="#EEF2F8"
+                                            VerticalAlignment="Center">
+                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE9D9;" Foreground="#465D7A"
+                                                   FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="16,0,18,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Collect diagnostics" FontSize="17" FontWeight="SemiBold"
+                                                   Foreground="#302735"/>
+                                        <TextBlock Text="Save a privacy-safe support bundle with WRN status and logs."
+                                                   Style="{StaticResource MutedTextStyle}" Margin="0,5,0,0"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Text="Save bundle →" Foreground="#5A1A75"
+                                               FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Button>
                         </StackPanel>
                     </Grid>
 
