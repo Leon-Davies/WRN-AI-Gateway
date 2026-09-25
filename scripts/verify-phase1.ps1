@@ -51,7 +51,35 @@ if (Test-Path $brandPath) {
     }
 }
 
+$xaml = Get-Content (Join-Path $src "WRN.AIGateway\ui\MainWindow.xaml") -Raw
+$visiblePlaceholders = @(
+    "Phase 1 preview",
+    "Prototype healthy",
+    "Mock connection",
+    "Preview catalogue",
+    "representative UI data"
+)
+foreach ($placeholder in $visiblePlaceholders) {
+    if ($xaml.Contains($placeholder)) {
+        throw "Visible development placeholder found in UI: $placeholder"
+    }
+}
+
+$requiredUi = @(
+    "ActionCardButtonStyle",
+    "ArtificialAnalysisButton",
+    "ModelsShortcutButton",
+    "UpdatesShortcutButton"
+)
+foreach ($required in $requiredUi) {
+    if (-not $xaml.Contains($required)) {
+        throw "Required owner-polish UI element is missing: $required"
+    }
+}
+
 Write-Host "PASS: native app builds" -ForegroundColor Green
+Write-Host "PASS: visible development placeholders removed" -ForegroundColor Green
+Write-Host "PASS: clickable action tiles and benchmark link present" -ForegroundColor Green
 Write-Host "PASS: no Claude package/history manipulation code in Phase 1 source" -ForegroundColor Green
 Write-Host "PASS: local corporate brand asset is excluded from git" -ForegroundColor Green
 Write-Host "PASS: Phase 1 remains standard-user only" -ForegroundColor Green

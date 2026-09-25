@@ -35,7 +35,7 @@ $compileArgs = @(
 if ($LASTEXITCODE -ne 0) { throw "Setup compilation failed with exit code $LASTEXITCODE" }
 
 $readme = @(
-    "WRN AI Gateway - Phase 1 Preview",
+    "WRN AI Gateway",
     "",
     "1. Double-click WRN-AI-Gateway-Setup.exe",
     "2. Click Install",

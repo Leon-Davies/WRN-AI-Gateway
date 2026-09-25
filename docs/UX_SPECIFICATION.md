@@ -161,3 +161,40 @@ Normal users should never need to:
 - know a localhost port.
 
 Those are developer/support concerns.
+
+
+## 13. Copy discipline
+
+Visible copy should earn its place.
+
+Keep text when it is actionable, materially informative, or confidence-building. Remove internal development language, placeholder status labels, lifecycle terminology, and repeated explanation.
+
+Do not expose labels such as:
+
+- Phase 1 preview;
+- prototype healthy;
+- mock connection;
+- preview catalogue;
+- implementation-stage commentary.
+
+The product UI should read as a product even while implementation is incomplete.
+
+## 14. Action surfaces and motion
+
+Primary home actions should use the full card as the interactive target rather than small nested buttons.
+
+Required behaviour:
+
+- whole-card pointer target;
+- visible keyboard focus state;
+- restrained hover animation;
+- concise action cue such as Open or View models;
+- no animation that obscures or delays the action.
+
+The personalised greeting may type in once on launch as a short product flourish. If Windows client-area animation is disabled, show the completed greeting immediately rather than animating.
+
+## 15. External model context
+
+The Models view may link to a reputable external model-comparison source for current benchmark and pricing context.
+
+External links must be clearly labelled and open in the user's normal browser. They should supplement WRN's curated catalogue rather than replace it.

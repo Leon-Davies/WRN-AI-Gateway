@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.DirectoryServices.AccountManagement;
 using System.IO;
 using System.Windows;
@@ -18,6 +19,9 @@ namespace WRN.AIGateway
         private readonly Dictionary<string, FrameworkElement> _pages = new Dictionary<string, FrameworkElement>();
         private readonly Dictionary<string, Button> _navButtons = new Dictionary<string, Button>();
         private readonly DispatcherTimer _toastTimer = new DispatcherTimer();
+        private readonly DispatcherTimer _typingTimer = new DispatcherTimer();
+        private string _greetingTarget = string.Empty;
+        private int _greetingIndex;
         private Border _toast;
         private TextBlock _toastTitle;
         private TextBlock _toastMessage;
@@ -77,7 +81,6 @@ namespace WRN.AIGateway
             RegisterPage("Models", "ModelsPage", "ModelsNavButton");
             RegisterPage("Updates", "UpdatesPage", "UpdatesNavButton");
             RegisterPage("Support", "SupportPage", "SupportNavButton");
-            RegisterPage("Settings", "SettingsPage", "SettingsNavButton");
 
             foreach (var pair in _navButtons)
             {
@@ -96,27 +99,41 @@ namespace WRN.AIGateway
         {
             Find<Button>("WTWLaunchButton").Click += delegate
             {
-                ShowToast("WTW Claude", "Phase 1 is UI-only. No Claude configuration has been changed.");
+                ShowToast("WTW Claude", "WTW launch wiring is not enabled yet.");
             };
             Find<Button>("WRNLaunchButton").Click += delegate
             {
-                ShowToast("WRN Claude", "The safe mode-switching engine will be connected in a later phase.");
+                ShowToast("WRN Claude", "WRN launch wiring is not enabled yet.");
             };
-            Find<Button>("CheckUpdatesButton").Click += delegate
+            Find<Button>("ModelsShortcutButton").Click += delegate
             {
-                ShowToast("You're up to date", "Prototype catalogue 2026.09.25 is loaded locally.");
+                ShowPage("Models");
+            };
+            Find<Button>("UpdatesShortcutButton").Click += delegate
+            {
+                ShowPage("Updates");
+            };
+            Find<Button>("ArtificialAnalysisButton").Click += delegate
+            {
+                OpenExternalUrl("https://artificialanalysis.ai/models?cost=intelligence-vs-cost-per-task");
             };
             Find<Button>("ModelRequestButton").Click += delegate
             {
-                ShowToast("Model request", "Support workflow will be connected before pilot rollout.");
+                Clipboard.SetText(
+                    "WRN AI model request" + Environment.NewLine + Environment.NewLine +
+                    "Model:" + Environment.NewLine +
+                    "Use case:" + Environment.NewLine +
+                    "Why it would help:");
+                ShowToast("Request copied", "Paste the template into a message to WRN AI support.");
             };
             Find<Button>("ReportBugButton").Click += delegate
             {
-                ShowToast("Report a problem", "Privacy-safe diagnostic export will be added before pilot rollout.");
-            };
-            Find<Button>("TestConnectionButton").Click += delegate
-            {
-                ShowToast("Connection check", "OpenRouter checks are intentionally mocked in Phase 1.");
+                Clipboard.SetText(
+                    "WRN AI Gateway issue" + Environment.NewLine + Environment.NewLine +
+                    "What happened:" + Environment.NewLine +
+                    "What I expected:" + Environment.NewLine +
+                    "When: " + DateTime.Now.ToString("g"));
+                ShowToast("Issue template copied", "Paste it into a message to WRN AI support.");
             };
         }
 
@@ -125,8 +142,30 @@ namespace WRN.AIGateway
             var firstName = ResolveFirstName();
             var hour = DateTime.Now.Hour;
             var greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-            Find<TextBlock>("GreetingText").Text = string.IsNullOrWhiteSpace(firstName) ? greeting : greeting + ", " + firstName;
-            Find<TextBlock>("TodayText").Text = DateTime.Now.ToString("dddd, d MMMM");
+            _greetingTarget = string.IsNullOrWhiteSpace(firstName) ? greeting : greeting + ", " + firstName;
+
+            var greetingText = Find<TextBlock>("GreetingText");
+            if (!SystemParameters.ClientAreaAnimation)
+            {
+                greetingText.Text = _greetingTarget;
+                return;
+            }
+
+            greetingText.Text = string.Empty;
+            _greetingIndex = 0;
+            _typingTimer.Interval = TimeSpan.FromMilliseconds(42);
+            _typingTimer.Tick += delegate
+            {
+                if (_greetingIndex >= _greetingTarget.Length)
+                {
+                    _typingTimer.Stop();
+                    return;
+                }
+
+                greetingText.Text += _greetingTarget[_greetingIndex];
+                _greetingIndex++;
+            };
+            _typingTimer.Start();
         }
 
         private static string ResolveFirstName()
@@ -174,6 +213,26 @@ namespace WRN.AIGateway
                     return;
                 }
                 catch { }
+            }
+        }
+
+        private static void OpenExternalUrl(string url)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch
+            {
+                MessageBox.Show(
+                    "The link could not be opened in your browser.",
+                    "WRN AI Gateway",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
             }
         }
 

@@ -74,10 +74,6 @@ namespace WRN.AIGateway.Setup
             _installButton.Click += InstallButtonClick;
             Controls.Add(_installButton);
 
-            Controls.Add(new Label {
-                Text = "Phase 1 preview", ForeColor = Color.FromArgb(128, 116, 133),
-                AutoSize = true, Left = 30, Top = 292
-            });
         }
 
         private void InstallButtonClick(object sender, EventArgs e)
