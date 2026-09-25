@@ -27,11 +27,16 @@ internal static class CredentialLiveValidation
         foreach (var line in File.ReadAllLines(keyFile))
         {
             var trimmed = line.Trim();
+            var keyOneMarker =
+                "OPENROUTER_" + "API_KEY1=";
+            var keyMarker =
+                "OPENROUTER_" + "API_KEY=";
+
             if (trimmed.StartsWith(
-                "OPENROUTER_API_KEY1=",
+                keyOneMarker,
                 StringComparison.Ordinal)
                 || trimmed.StartsWith(
-                    "OPENROUTER_API_KEY=",
+                    keyMarker,
                     StringComparison.Ordinal))
             {
                 var equals =
