@@ -87,7 +87,10 @@ if ($credentials.Contains("Console.WriteLine") -or
     throw "Credential service must not log key-bearing state."
 }
 
-Write-Host "PASS: Settings centered around connect / test / remove actions"
+if (-not $xaml.Contains('Style="{StaticResource CardStyle}"')) {
+    throw "Settings must use the shared WRN card language."
+}
+Write-Host "PASS: Settings uses the shared WRN card layout"
 Write-Host "PASS: optional connection details live behind info button"
 Write-Host "PASS: masked native PasswordBox entry"
 Write-Host "PASS: connect / test / remove actions wired"
