@@ -55,6 +55,7 @@ internal static class ModeCoordinatorTests
         Directory.CreateDirectory(tempRoot);
 
         TestHealthyWrnPreflight(baseDir, tempRoot);
+        TestMissingConfigLibraryPreflight(baseDir, tempRoot);
         TestMissingCredentialBlocked(baseDir, tempRoot);
         TestRecoveryInstallBlocked(baseDir, tempRoot);
         TestPendingRecoveryRequired(baseDir, tempRoot);
@@ -309,6 +310,46 @@ internal static class ModeCoordinatorTests
             serialized.IndexOf(
                 fixture.OpenRouterKey,
                 StringComparison.Ordinal) < 0);
+    }
+
+    private static void TestMissingConfigLibraryPreflight(
+        string baseDir,
+        string tempRoot)
+    {
+        var fixture =
+            CreateFixture(
+                tempRoot,
+                "missing-config-library",
+                GetFreeLoopbackPort());
+
+        File.Delete(fixture.Paths.DesktopConfigPath);
+        File.Delete(fixture.Paths.MetaPath);
+        Directory.Delete(
+            fixture.Paths.ConfigLibraryPath,
+            false);
+
+        var report = ModeCoordinator.Inspect(
+            "wrn",
+            baseDir,
+            fixture.StateRoot,
+            fixture.Paths,
+            HealthyWtw());
+
+        Check(
+            "real-baseline missing configLibrary preflight compatible",
+            report.PreflightCompatible);
+        Check(
+            "real-baseline missing configLibrary plan includes directory create",
+            report.TransitionPlanCompiled
+            && report.PlannedMutations.Length == 4
+            && string.Equals(
+                report.PlannedPaths[0],
+                fixture.Paths.ConfigLibraryPath,
+                StringComparison.OrdinalIgnoreCase));
+        Check(
+            "real-baseline missing configLibrary remains live-disabled",
+            !report.LiveExecutionEnabled
+            && !report.LiveExecutionAllowed);
     }
 
     private static void TestMissingCredentialBlocked(
