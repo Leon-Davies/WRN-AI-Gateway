@@ -309,3 +309,34 @@ The current icon treatment is:
 - small green status/accent dot.
 
 The executable icon should propagate naturally to taskbar and shortcut surfaces without requiring administrator rights.
+
+
+## 24. Hover breathing room
+
+Animated action cards must not touch a clipping boundary.
+
+For scrollable Home and Models surfaces, keep a small inset around the viewport so the card hover scale/border can render on all sides.
+
+Acceptance:
+
+- left-column cards do not lose their left hover edge;
+- right-column cards do not lose their right hover edge;
+- the same behaviour holds for Home and Models;
+- do not remove the hover motion merely to hide clipping.
+
+## 25. WRN dialog shell
+
+Model details and Support templates are part of WRN AI Gateway and must not fall back to default Windows dialog chrome.
+
+Required dialog treatment:
+
+- custom WRN-purple title bar;
+- WRN mark and product name;
+- custom close control;
+- rounded light application surface;
+- no standard Windows title bar;
+- rounded WRN-styled action buttons;
+- content typography consistent with the main application;
+- Support template field visually integrated with the shell.
+
+The native Windows window may still provide accessibility, ownership, modality and task-switching behaviour underneath the custom shell.

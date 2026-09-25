@@ -238,6 +238,7 @@ Before Phase 1 is accepted:
 
 - Home renders at normal size and 980×680 minimum size without clipping;
 - the four Home cards are equal-sized;
+- hovered left/right card edges remain visible on Home and Models without viewport clipping;
 - WTW Claude and WRN Claude are visually distinct while retaining text labels;
 - the rotating WRN hero transitions correctly and respects reduced animation;
 - both WTW Claude and WRN Claude show ZDR status;
@@ -246,6 +247,7 @@ Before Phase 1 is accepted:
 - model prices are shown in USD;
 - model detail panels explain benchmark rank, cost assumptions and intended use;
 - Support templates show the WRN maintainer contact;
+- model/support dialogs use WRN custom chrome rather than default Windows title bars;
 - Open in Outlook creates a populated draft but does not send;
 - the app and installer use the WRN AI Gateway icon rather than the default executable icon;
 - colleague-style install/update still succeeds without elevation.

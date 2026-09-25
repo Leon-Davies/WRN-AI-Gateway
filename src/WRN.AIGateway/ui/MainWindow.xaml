@@ -358,7 +358,8 @@
 
                 <Grid Grid.Row="1" Margin="30,0,30,28">
                     <Grid x:Name="HomePage">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                      Padding="7,4,7,8">
                             <StackPanel Margin="0,4,0,10">
                                 <Border Height="196" CornerRadius="20" ClipToBounds="True" Effect="{StaticResource SoftShadow}">
                                     <Grid>
@@ -525,7 +526,8 @@
                     </Grid>
 
                     <Grid x:Name="ModelsPage" Visibility="Collapsed">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                      Padding="7,4,7,8">
                             <StackPanel Margin="0,4,0,20">
                                 <TextBlock Text="Models" Foreground="#2D2531" FontSize="29" FontWeight="SemiBold" Margin="0,0,0,18"/>
 

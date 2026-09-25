@@ -87,7 +87,8 @@ $requiredUi = @(
     "Brought to you by the Willis Research Network",
     'Height="164"',
     'Tag="wtw"',
-    'Tag="wrn"'
+    'Tag="wrn"',
+    'Padding="7,4,7,8"'
 )
 foreach ($required in $requiredUi) {
     if (-not $xaml.Contains($required)) {
@@ -102,6 +103,10 @@ if ($xaml.Contains("¢")) {
 $controller = Get-Content (Join-Path $src "WRN.AIGateway\AppController.cs") -Raw
 foreach ($requiredControllerText in @(
     "OpenOutlookDraft",
+    "CreateDialogShell",
+    "WindowStyle = WindowStyle.None",
+    "AllowsTransparency = true",
+    "CreateFlatButtonTemplate",
     "mailto:",
     "Leon.Davies@wtwco.com",
     '$0.0018',

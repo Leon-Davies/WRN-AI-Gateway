@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using System.Windows.Shell;
 using System.Windows.Threading;
@@ -378,11 +379,13 @@ namespace WRN.AIGateway
             actions.Children.Add(close);
             body.Children.Add(actions);
 
-            dialog.Content = new ScrollViewer
+            var modelScroll = new ScrollViewer
             {
                 Content = body,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
             };
+            dialog.Content = CreateDialogShell(dialog, modelScroll);
             dialog.ShowDialog();
         }
 
@@ -416,14 +419,20 @@ namespace WRN.AIGateway
                 TextWrapping = TextWrapping.Wrap,
                 MinHeight = 255,
                 Padding = new Thickness(14),
-                BorderBrush = Brush("#DDD5E1"),
-                BorderThickness = new Thickness(1),
-                Background = Brushes.White,
+                BorderThickness = new Thickness(0),
+                Background = Brushes.Transparent,
                 Foreground = Brush("#3B3340"),
                 FontSize = 13.5,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto
             };
-            body.Children.Add(box);
+            body.Children.Add(new Border
+            {
+                Background = Brushes.White,
+                BorderBrush = Brush("#DDD5E1"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(10),
+                Child = box
+            });
 
             var actions = new StackPanel
             {
@@ -454,13 +463,13 @@ namespace WRN.AIGateway
             actions.Children.Add(close);
             body.Children.Add(actions);
 
-            dialog.Content = body;
+            dialog.Content = CreateDialogShell(dialog, body);
             dialog.ShowDialog();
         }
 
         private Window CreateDialog(string title, double width, double height)
         {
-            return new Window
+            var dialog = new Window
             {
                 Title = title + " — WRN AI Gateway",
                 Owner = _window,
@@ -472,10 +481,129 @@ namespace WRN.AIGateway
                 MaxHeight = height,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 ResizeMode = ResizeMode.NoResize,
-                Background = Brush("#F7F5F8"),
+                WindowStyle = WindowStyle.None,
+                AllowsTransparency = true,
+                Background = Brushes.Transparent,
                 FontFamily = new FontFamily("Segoe UI"),
                 ShowInTaskbar = false
             };
+
+            var iconPath = Path.Combine(_baseDir, "assets", "wrn-ai-gateway.ico");
+            if (File.Exists(iconPath))
+            {
+                try
+                {
+                    dialog.Icon = BitmapFrame.Create(new Uri(iconPath, UriKind.Absolute));
+                }
+                catch { }
+            }
+
+            return dialog;
+        }
+
+        private FrameworkElement CreateDialogShell(Window dialog, FrameworkElement content)
+        {
+            var outer = new Border
+            {
+                Background = Brush("#F7F5F8"),
+                BorderBrush = Brush("#DCCFE1"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(14),
+                Effect = new DropShadowEffect
+                {
+                    BlurRadius = 26,
+                    ShadowDepth = 6,
+                    Opacity = 0.22,
+                    Color = (Color)ColorConverter.ConvertFromString("#2B1533")
+                }
+            };
+
+            var layout = new Grid();
+            layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(50) });
+            layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+            var titleBar = new Border
+            {
+                Background = Brush("#45125D"),
+                CornerRadius = new CornerRadius(13, 13, 0, 0),
+                Cursor = Cursors.SizeAll
+            };
+            titleBar.MouseLeftButtonDown += delegate(object sender, MouseButtonEventArgs e)
+            {
+                if (e.ChangedButton != MouseButton.Left) return;
+                try { dialog.DragMove(); } catch { }
+            };
+
+            var titleGrid = new Grid { Margin = new Thickness(14, 0, 8, 0) };
+            titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var mark = new Border
+            {
+                Width = 28,
+                Height = 28,
+                CornerRadius = new CornerRadius(8),
+                Background = Brushes.White,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            mark.Child = new TextBlock
+            {
+                Text = "W",
+                Foreground = Brush("#4B1464"),
+                FontWeight = FontWeights.Bold,
+                FontSize = 15,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            titleGrid.Children.Add(mark);
+
+            var appTitle = new TextBlock
+            {
+                Text = "WRN AI Gateway",
+                Foreground = Brushes.White,
+                FontSize = 13.5,
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(10, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(appTitle, 1);
+            titleGrid.Children.Add(appTitle);
+
+            var close = new Button
+            {
+                Content = "×",
+                Width = 40,
+                Height = 36,
+                Background = Brushes.Transparent,
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                FontSize = 19,
+                FontWeight = FontWeights.Normal,
+                Cursor = Cursors.Hand,
+                ToolTip = "Close",
+                Template = CreateFlatButtonTemplate(8)
+            };
+            close.MouseEnter += delegate { close.Background = Brush("#24FFFFFF"); };
+            close.MouseLeave += delegate { close.Background = Brushes.Transparent; };
+            close.Click += delegate { dialog.Close(); };
+            Grid.SetColumn(close, 2);
+            titleGrid.Children.Add(close);
+
+            titleBar.Child = titleGrid;
+            layout.Children.Add(titleBar);
+
+            var contentFrame = new Border
+            {
+                Background = Brush("#F7F5F8"),
+                CornerRadius = new CornerRadius(0, 0, 13, 13),
+                Child = content
+            };
+            Grid.SetRow(contentFrame, 1);
+            layout.Children.Add(contentFrame);
+
+            outer.Child = layout;
+            return outer;
         }
 
         private static Border MetricCard(string label, string value, int column)
@@ -537,20 +665,58 @@ namespace WRN.AIGateway
 
         private static Button DialogButton(string label, bool primary)
         {
+            var normal = primary ? Brush("#56186F") : Brush("#ECE6EF");
+            var hover = primary ? Brush("#6A2286") : Brush("#E3D8E8");
+
             var button = new Button
             {
                 Content = label,
-                Height = 38,
+                Height = 40,
                 MinWidth = 96,
                 Padding = new Thickness(16, 0, 16, 0),
                 FontSize = 13,
                 FontWeight = FontWeights.SemiBold,
                 Cursor = Cursors.Hand,
                 BorderThickness = new Thickness(0),
-                Background = primary ? Brush("#56186F") : Brush("#ECE6EF"),
-                Foreground = primary ? Brushes.White : Brush("#4B1464")
+                Background = normal,
+                Foreground = primary ? Brushes.White : Brush("#4B1464"),
+                Template = CreateFlatButtonTemplate(9)
             };
+            button.MouseEnter += delegate { button.Background = hover; };
+            button.MouseLeave += delegate { button.Background = normal; };
             return button;
+        }
+
+        private static ControlTemplate CreateFlatButtonTemplate(double radius)
+        {
+            var border = new FrameworkElementFactory(typeof(Border));
+            border.SetValue(Border.CornerRadiusProperty, new CornerRadius(radius));
+            border.SetBinding(Border.BackgroundProperty, new System.Windows.Data.Binding("Background")
+            {
+                RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent)
+            });
+            border.SetBinding(Border.BorderBrushProperty, new System.Windows.Data.Binding("BorderBrush")
+            {
+                RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent)
+            });
+            border.SetBinding(Border.BorderThicknessProperty, new System.Windows.Data.Binding("BorderThickness")
+            {
+                RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent)
+            });
+
+            var presenter = new FrameworkElementFactory(typeof(ContentPresenter));
+            presenter.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            presenter.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+            presenter.SetBinding(ContentPresenter.MarginProperty, new System.Windows.Data.Binding("Padding")
+            {
+                RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent)
+            });
+            border.AppendChild(presenter);
+
+            return new ControlTemplate(typeof(Button))
+            {
+                VisualTree = border
+            };
         }
 
         private static SolidColorBrush Brush(string value)
