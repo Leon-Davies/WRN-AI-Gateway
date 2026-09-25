@@ -24,6 +24,7 @@ $args = @(
     (Join-Path $sharedSrc "ModelCatalogue.cs"),
     (Join-Path $sharedSrc "RuntimeFailures.cs"),
     (Join-Path $gatewaySrc "GatewayPolicy.cs"),
+    (Join-Path $gatewaySrc "GatewayFailureSanitizer.cs"),
     (Join-Path $gatewaySrc "Program.cs")
 )
 
