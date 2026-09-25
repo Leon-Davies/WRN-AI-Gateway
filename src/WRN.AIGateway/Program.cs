@@ -13,6 +13,8 @@ namespace WRN.AIGateway
             var baseDir = AppDomain.CurrentDomain.BaseDirectory;
             var args = Environment.GetCommandLineArgs();
 
+            if (AppUpdateCommand.TryRun(args, baseDir))
+                return;
             if (CatalogueCommand.TryRun(args, baseDir))
                 return;
             if (ModeCoordinatorCommand.TryRun(args, baseDir))
