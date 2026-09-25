@@ -10,17 +10,15 @@ The credential UI does not enable live Claude switching. The clean managed-Claud
 
 ## Product flow
 
-Settings now contains an **OpenRouter connection** surface with three normal-user states:
+Settings is intentionally minimal for internal WRN use.
 
-- **Not connected** — no key is stored;
-- **Connected** — the stored credential is decryptable for the current Windows user and has validation metadata;
-- **Needs attention** — a stored credential cannot be unlocked or a manual connection test fails.
+The visible surface contains only the connection actions:
 
-Available actions:
-
-- **Connect OpenRouter** / **Replace key**;
-- **Test connection**;
+- **Connect** / **Replace**;
+- **Test**;
 - **Remove**.
+
+Connection state is expressed through which actions are available and short success/failure toasts rather than explanatory panels or technical status text.
 
 The WRN Claude Home tile checks only credential readiness at this checkpoint. If no usable key is configured, it takes the user to Settings. If a key is ready, the tile still explains that Claude switching remains disabled pending managed-Claude qualification.
 
@@ -143,8 +141,10 @@ If central provisioning is added later, it must provision a per-user credential 
 
 ## Current UI status
 
-The Settings page and masked Connect/Replace dialog are implemented.
+The Settings page is intentionally reduced to three actions: Connect/Replace, Test, and Remove.
 
-The screen deliberately avoids API IDs, JSON, ports, DPAPI terminology, or other developer concepts in the normal user path.
+The key dialog is also compact: title, masked key field, action buttons, and error/progress text only when needed.
+
+The normal user path avoids explanatory/security panels, API IDs, JSON, ports, DPAPI terminology, or other developer concepts.
 
 Live Claude transition execution remains hard-disabled.
