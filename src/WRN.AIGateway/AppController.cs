@@ -350,7 +350,7 @@ namespace WRN.AIGateway
 
         private void RefreshCredentialStatus()
         {
-            CredentialStatus status;
+            CredentialStatus status = null;
             try
             {
                 status =
@@ -359,119 +359,27 @@ namespace WRN.AIGateway
             }
             catch
             {
-                ApplyCredentialStatus(
-                    "Needs attention",
-                    "The saved OpenRouter connection could not be inspected.",
-                    "Connection status unavailable",
-                    "Local gateway status unavailable.",
-                    "#FDECEC",
-                    "#9C3D3D",
-                    false);
-                return;
             }
 
+            var configured =
+                status != null
+                && status.Configured;
             var ready =
-                status.Configured
+                configured
                 && status.Decryptable;
-
-            if (!status.Configured)
-            {
-                ApplyCredentialStatus(
-                    "Not connected",
-                    "Connect an OpenRouter API key before WRN Claude can use the WRN model service.",
-                    "No OpenRouter key saved",
-                    status.GatewayConfigured
-                        ? "Local gateway setup is ready."
-                        : "Local gateway will be configured automatically.",
-                    "#FFF4E8",
-                    "#985A20",
-                    false);
-            }
-            else if (!status.Decryptable)
-            {
-                ApplyCredentialStatus(
-                    "Needs attention",
-                    "The saved OpenRouter key cannot be unlocked for this Windows account. Replace it to continue.",
-                    "Saved key cannot be unlocked",
-                    status.GatewayConfigured
-                        ? "Local gateway setup is ready."
-                        : "Local gateway will be configured automatically.",
-                    "#FDECEC",
-                    "#9C3D3D",
-                    false);
-            }
-            else
-            {
-                var validated =
-                    FormatValidatedAt(
-                        status.ValidatedAtUtc);
-                ApplyCredentialStatus(
-                    "Connected",
-                    "Your OpenRouter key is protected and ready for WRN Claude.",
-                    validated,
-                    status.GatewayConfigured
-                        ? "Local gateway setup is ready."
-                        : "Local gateway will be configured automatically.",
-                    "#EAF6EF",
-                    "#2E6A49",
-                    true);
-            }
 
             Find<Button>("CredentialConnectButton").Content =
                 ready
-                    ? "Replace key"
-                    : "Connect OpenRouter";
-        }
-
-        private void ApplyCredentialStatus(
-            string status,
-            string detail,
-            string validated,
-            string gateway,
-            string badgeBackground,
-            string badgeForeground,
-            bool canTestOrRemove)
-        {
-            Find<TextBlock>("CredentialStatusText").Text =
-                status;
-            Find<TextBlock>("CredentialStatusDetail").Text =
-                detail;
-            Find<TextBlock>("CredentialValidatedText").Text =
-                validated;
-            Find<TextBlock>("CredentialGatewayText").Text =
-                gateway;
-
-            Find<Border>("CredentialStatusBadge").Background =
-                Brush(badgeBackground);
-            Find<TextBlock>("CredentialStatusText").Foreground =
-                Brush(badgeForeground);
-
-            Find<Button>("CredentialTestButton").IsEnabled =
-                canTestOrRemove
-                && !_credentialOperationInFlight;
-            Find<Button>("CredentialRemoveButton").IsEnabled =
-                canTestOrRemove
-                && !_credentialOperationInFlight;
+                    ? "Replace"
+                    : "Connect";
             Find<Button>("CredentialConnectButton").IsEnabled =
                 !_credentialOperationInFlight;
-        }
-
-        private static string FormatValidatedAt(
-            string value)
-        {
-            DateTimeOffset parsed;
-            if (!string.IsNullOrWhiteSpace(value)
-                && DateTimeOffset.TryParse(
-                    value,
-                    out parsed))
-            {
-                return "Validated "
-                    + parsed.ToLocalTime().ToString(
-                        "d MMM yyyy, HH:mm",
-                        CultureInfo.InvariantCulture);
-            }
-
-            return "Saved key is ready";
+            Find<Button>("CredentialTestButton").IsEnabled =
+                ready
+                && !_credentialOperationInFlight;
+            Find<Button>("CredentialRemoveButton").IsEnabled =
+                configured
+                && !_credentialOperationInFlight;
         }
 
         private void ShowOpenRouterCredentialDialog()
@@ -479,16 +387,14 @@ namespace WRN.AIGateway
             var current =
                 OpenRouterCredentialStore.Inspect(
                     _stateRoot);
-            var replacing =
-                current.Configured
-                && current.Decryptable;
+            var replacing = current.Configured;
 
             var dialog = CreateDialog(
                 replacing
-                    ? "Replace OpenRouter key"
-                    : "Connect OpenRouter",
-                600,
-                400);
+                    ? "Replace key"
+                    : "Connect",
+                520,
+                300);
 
             var body =
                 new StackPanel
@@ -500,37 +406,14 @@ namespace WRN.AIGateway
                 new TextBlock
                 {
                     Text = replacing
-                        ? "Replace OpenRouter key"
-                        : "Connect OpenRouter",
+                        ? "Replace key"
+                        : "Connect",
                     FontSize = 24,
                     FontWeight =
                         FontWeights.SemiBold,
-                    Foreground = Brush("#302536")
-                });
-
-            body.Children.Add(
-                new TextBlock
-                {
-                    Text = replacing
-                        ? "Your existing key stays active unless the replacement is successfully validated."
-                        : "Paste the OpenRouter API key you were given. It will be validated before it is saved.",
-                    FontSize = 13.5,
-                    Foreground = Brush("#6F6574"),
-                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = Brush("#302536"),
                     Margin =
-                        new Thickness(0, 7, 0, 20)
-                });
-
-            body.Children.Add(
-                new TextBlock
-                {
-                    Text = "OpenRouter API key",
-                    FontSize = 13,
-                    FontWeight =
-                        FontWeights.SemiBold,
-                    Foreground = Brush("#3B3340"),
-                    Margin =
-                        new Thickness(0, 0, 0, 7)
+                        new Thickness(0, 0, 0, 18)
                 });
 
             var password =
@@ -565,13 +448,13 @@ namespace WRN.AIGateway
             var resultText =
                 new TextBlock
                 {
-                    Text =
-                        "The key is protected for your Windows account and is never displayed again after saving.",
+                    Text = string.Empty,
+                    Visibility = Visibility.Collapsed,
                     FontSize = 12.5,
-                    Foreground = Brush("#817787"),
+                    Foreground = Brush("#9C3D3D"),
                     TextWrapping = TextWrapping.Wrap,
                     Margin =
-                        new Thickness(0, 10, 0, 18)
+                        new Thickness(0, 10, 0, 16)
                 };
             body.Children.Add(resultText);
 
@@ -596,8 +479,8 @@ namespace WRN.AIGateway
             var save =
                 DialogButton(
                     replacing
-                        ? "Validate & replace"
-                        : "Validate & save",
+                        ? "Replace"
+                        : "Connect",
                     true);
             save.Margin =
                 new Thickness(10, 0, 0, 0);
@@ -614,9 +497,9 @@ namespace WRN.AIGateway
                 if (candidate.Length < 16)
                 {
                     resultText.Text =
-                        "Enter a valid OpenRouter API key.";
-                    resultText.Foreground =
-                        Brush("#9C3D3D");
+                        "Enter a valid OpenRouter key.";
+                    resultText.Visibility =
+                        Visibility.Visible;
                     candidate = null;
                     password.Focus();
                     return;
@@ -626,10 +509,11 @@ namespace WRN.AIGateway
                 save.IsEnabled = false;
                 cancel.IsEnabled = false;
                 password.IsEnabled = false;
-                resultText.Text =
-                    "Checking the key with OpenRouter…";
+                resultText.Text = "Checking…";
                 resultText.Foreground =
                     Brush("#5A1A75");
+                resultText.Visibility =
+                    Visibility.Visible;
 
                 var task = Task.Run(
                     delegate
@@ -675,8 +559,8 @@ namespace WRN.AIGateway
                                         RefreshCredentialStatus();
                                         dialog.Close();
                                         ShowToast(
-                                            "OpenRouter connected",
-                                            "Your key is protected and ready for WRN Claude.");
+                                            "Connected",
+                                            "OpenRouter is ready.");
                                         return;
                                     }
 
@@ -698,6 +582,8 @@ namespace WRN.AIGateway
                                                 : validation.Status);
                                     resultText.Foreground =
                                         Brush("#9C3D3D");
+                                    resultText.Visibility =
+                                        Visibility.Visible;
                                     RefreshCredentialStatus();
                                 }));
                     });
@@ -722,8 +608,7 @@ namespace WRN.AIGateway
                 return;
 
             _credentialOperationInFlight = true;
-            ApplyCredentialBusyState(
-                "Testing the saved key with OpenRouter…");
+            ApplyCredentialBusyState();
 
             Task.Run(
                 delegate
@@ -742,48 +627,34 @@ namespace WRN.AIGateway
                                     _credentialOperationInFlight = false;
                                     RefreshCredentialStatus();
 
-                                    if (completed.Status
+                                    var validation =
+                                        completed.Status
                                             == TaskStatus.RanToCompletion
-                                        && completed.Result != null
-                                        && completed.Result.Valid)
+                                            ? completed.Result
+                                            : null;
+
+                                    if (validation != null
+                                        && validation.Valid)
                                     {
                                         ShowToast(
-                                            "Connection ready",
-                                            "OpenRouter accepted the saved key.");
+                                            "Connection works",
+                                            "OpenRouter is ready.");
                                     }
                                     else
                                     {
-                                        var validation =
-                                            completed.Status
-                                                == TaskStatus.RanToCompletion
-                                                ? completed.Result
-                                                : null;
-                                        Find<TextBlock>(
-                                            "CredentialStatusDetail").Text =
+                                        ShowToast(
+                                            "Connection failed",
                                             FriendlyCredentialError(
                                                 validation == null
                                                     ? "KEY_VALIDATION_FAILED"
-                                                    : validation.Status);
-                                        Find<TextBlock>(
-                                            "CredentialStatusText").Text =
-                                            "Needs attention";
-                                        Find<Border>(
-                                            "CredentialStatusBadge").Background =
-                                            Brush("#FDECEC");
-                                        Find<TextBlock>(
-                                            "CredentialStatusText").Foreground =
-                                            Brush("#9C3D3D");
+                                                    : validation.Status));
                                     }
                                 }));
                     });
         }
 
-        private void ApplyCredentialBusyState(
-            string message)
+        private void ApplyCredentialBusyState()
         {
-            Find<TextBlock>(
-                "CredentialStatusDetail").Text =
-                message;
             Find<Button>(
                 "CredentialConnectButton").IsEnabled =
                 false;
@@ -805,9 +676,9 @@ namespace WRN.AIGateway
                 return;
 
             var dialog = CreateDialog(
-                "Remove OpenRouter key",
-                560,
-                350);
+                "Remove key",
+                460,
+                235);
             var body =
                 new StackPanel
                 {
@@ -817,22 +688,13 @@ namespace WRN.AIGateway
             body.Children.Add(
                 new TextBlock
                 {
-                    Text = "Remove OpenRouter key?",
+                    Text = "Remove key?",
                     FontSize = 24,
                     FontWeight =
                         FontWeights.SemiBold,
-                    Foreground = Brush("#302536")
-                });
-            body.Children.Add(
-                new TextBlock
-                {
-                    Text =
-                        "WRN Claude will no longer be able to use OpenRouter on this PC until another key is connected. Your model catalogue and local app settings are not removed.",
-                    FontSize = 13.5,
-                    Foreground = Brush("#6F6574"),
-                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = Brush("#302536"),
                     Margin =
-                        new Thickness(0, 9, 0, 24)
+                        new Thickness(0, 0, 0, 24)
                 });
 
             var actions =
@@ -853,7 +715,7 @@ namespace WRN.AIGateway
             actions.Children.Add(cancel);
 
             var remove =
-                DialogButton("Remove key", true);
+                DialogButton("Remove", true);
             remove.Margin =
                 new Thickness(10, 0, 0, 0);
             remove.Click += delegate
@@ -868,14 +730,14 @@ namespace WRN.AIGateway
                     dialog.Close();
                     RefreshCredentialStatus();
                     ShowToast(
-                        "OpenRouter key removed",
-                        "WRN Claude is no longer connected to OpenRouter on this PC.");
+                        "Key removed",
+                        "OpenRouter disconnected.");
                 }
                 catch
                 {
                     ShowToast(
-                        "Could not remove the key",
-                        "WRN AI Gateway could not safely stop its local connection. Try again after closing WRN Claude.");
+                        "Could not remove key",
+                        "Close WRN Claude and try again.");
                 }
             };
             actions.Children.Add(remove);
@@ -894,15 +756,15 @@ namespace WRN.AIGateway
             switch (status)
             {
                 case "KEY_UNAUTHORIZED":
-                    return "OpenRouter did not accept that key. Check the key and try again.";
+                    return "Key not accepted. Check it and try again.";
                 case "INFERENCE_KEY_REQUIRED":
-                    return "Use a normal OpenRouter inference API key rather than a management or provisioning key.";
+                    return "Use an OpenRouter API key.";
                 case "KEY_VALIDATION_NETWORK_ERROR":
-                    return "OpenRouter could not be reached. Check your connection and try again.";
+                    return "Can't reach OpenRouter. Try again.";
                 case "CREDENTIAL_NOT_CONFIGURED":
-                    return "No OpenRouter key is saved on this PC.";
+                    return "No key is saved.";
                 default:
-                    return "The key could not be validated. Nothing was changed.";
+                    return "Could not validate the key. Nothing changed.";
             }
         }
 
