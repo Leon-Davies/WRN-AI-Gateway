@@ -49,6 +49,7 @@ $references = @(
     (Join-Path $framework "System.Xaml.dll"),
     (Join-Path $framework "System.DirectoryServices.dll"),
     (Join-Path $framework "System.DirectoryServices.AccountManagement.dll"),
+    (Join-Path $framework "System.Web.Extensions.dll"),
     (Join-Path $wpf "WindowsBase.dll"),
     (Join-Path $wpf "PresentationCore.dll"),
     (Join-Path $wpf "PresentationFramework.dll")
@@ -77,6 +78,7 @@ foreach ($reference in $references) {
 
 $args += (Join-Path $src "Program.cs")
 $args += (Join-Path $src "AppController.cs")
+$args += (Join-Path $src "ClaudeDiscovery.cs")
 
 & $csc $args
 if ($LASTEXITCODE -ne 0) {
@@ -87,7 +89,7 @@ Write-Host ""
 Write-Host "Build complete:" -ForegroundColor Green
 Write-Host "  $dist\WRN-AI-Gateway.exe"
 Write-Host ""
-Write-Host "This Phase 1 build does not modify Claude configuration." -ForegroundColor Cyan
+Write-Host "Phase 2 discovery is read-only with respect to Claude configuration; live switching is not enabled." -ForegroundColor Cyan
 
 if ($Run) {
     Start-Process (Join-Path $dist "WRN-AI-Gateway.exe")

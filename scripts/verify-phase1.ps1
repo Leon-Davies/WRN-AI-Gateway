@@ -28,9 +28,15 @@ $forbidden = @(
     "runas"
 )
 
-$sourceFiles = Get-ChildItem $src -Recurse -File | Where-Object {
-    $_.Extension -in @(".cs", ".xaml", ".ps1", ".cmd")
-}
+# Phase 1's lifecycle guard applies to the original shell/setup surface.
+# Phase 2 has a separate read-only discovery verifier which is allowed to *detect*
+# package/config paths but still forbids mutation.
+$sourceFiles = @(
+    (Join-Path $src "WRN.AIGateway\Program.cs"),
+    (Join-Path $src "WRN.AIGateway\AppController.cs"),
+    (Join-Path $src "WRN.AIGateway\ui\MainWindow.xaml"),
+    (Join-Path $src "WRN.AIGateway.Setup\Setup.cs")
+) | ForEach-Object { Get-Item $_ }
 foreach ($pattern in $forbidden) {
     $hit = $sourceFiles | Select-String -SimpleMatch $pattern -ErrorAction SilentlyContinue
     if ($hit) {
