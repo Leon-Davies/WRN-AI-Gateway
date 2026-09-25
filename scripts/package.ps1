@@ -1,6 +1,6 @@
 param(
     [string]$Version = "0.1.0-dev",
-    [int]$Release = 0
+    [int]$AppRelease = 0
 )
 $ErrorActionPreference = "Stop"
 
@@ -18,7 +18,7 @@ Copy-Item (Join-Path $dist "*") $appDir -Recurse -Force
 
 $identity = [ordered]@{
     schemaVersion = 1
-    release = $Release
+    release = $AppRelease
     version = $Version
 }
 $identityJson = $identity | ConvertTo-Json
