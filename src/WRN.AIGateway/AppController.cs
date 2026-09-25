@@ -203,6 +203,82 @@ namespace WRN.AIGateway
                     Environment.NewLine +
                     "Please do not include API keys, passwords, or confidential prompt/file contents.");
             };
+
+            Find<Button>("CollectDiagnosticsButton").Click += delegate
+            {
+                BeginCollectDiagnostics();
+            };
+        }
+
+        private void BeginCollectDiagnostics()
+        {
+            var button =
+                Find<Button>(
+                    "CollectDiagnosticsButton");
+
+            button.IsEnabled = false;
+
+            ShowToast(
+                "Collecting diagnostics",
+                "Creating a privacy-safe WRN support bundle…");
+
+            Task.Run(
+                delegate
+                {
+                    return DiagnosticsBundle.Create(
+                        _baseDir,
+                        _stateRoot);
+                })
+                .ContinueWith(
+                    delegate(Task<DiagnosticsBundleResult> task)
+                    {
+                        _window.Dispatcher.BeginInvoke(
+                            new Action(
+                                delegate
+                                {
+                                    button.IsEnabled = true;
+
+                                    var result =
+                                        task.Status
+                                            == TaskStatus.RanToCompletion
+                                            ? task.Result
+                                            : null;
+
+                                    if (result == null
+                                        || !result.Success
+                                        || string.IsNullOrWhiteSpace(
+                                            result.Path))
+                                    {
+                                        ShowToast(
+                                            "Diagnostics not created",
+                                            "Try again or contact WRN AI support.");
+                                        return;
+                                    }
+
+                                    ShowToast(
+                                        "Diagnostics ready",
+                                        "Saved to Documents > WRN AI Gateway > Diagnostics.");
+
+                                    try
+                                    {
+                                        Process.Start(
+                                            new ProcessStartInfo
+                                            {
+                                                FileName =
+                                                    "explorer.exe",
+                                                Arguments =
+                                                    "/select,\""
+                                                    + result.Path
+                                                    + "\"",
+                                                UseShellExecute =
+                                                    true
+                                            });
+                                    }
+                                    catch
+                                    {
+                                    }
+                                }));
+                    });
         }
 
         private void InitializeAppUpdateStatus()
