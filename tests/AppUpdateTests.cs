@@ -103,6 +103,11 @@ internal static class AppUpdateTests
                 temp,
                 rsa,
                 publicKey);
+            TestLocalBrandAssetsPreserved(
+                dist,
+                temp,
+                rsa,
+                publicKey);
             TestActivationSuccess(
                 dist,
                 temp,
@@ -416,6 +421,101 @@ internal static class AppUpdateTests
         Check(
             "identity mismatch preserves current",
             ReadRelease(fixture.Current) == 1);
+    }
+
+    private static void TestLocalBrandAssetsPreserved(
+        string dist,
+        string temp,
+        RSACryptoServiceProvider rsa,
+        string publicKey)
+    {
+        var fixture =
+            CreateFixture(
+                dist,
+                temp,
+                "brand-preservation",
+                1,
+                -1);
+
+        var localHero =
+            Encoding.UTF8.GetBytes(
+                "local-wrn-brand-asset");
+
+        WriteSentinel(
+            fixture.Current,
+            @"assets\wrn-hero-local.png",
+            localHero);
+
+        var candidateRoot =
+            Path.Combine(
+                temp,
+                "brand-preservation-candidate");
+
+        if (Directory.Exists(candidateRoot))
+            Directory.Delete(candidateRoot, true);
+
+        CopyDirectory(
+            dist,
+            candidateRoot);
+
+        var candidateAssets =
+            Path.Combine(
+                candidateRoot,
+                "assets");
+
+        if (Directory.Exists(candidateAssets))
+        {
+            foreach (var hero in Directory.GetFiles(
+                candidateAssets,
+                "wrn-hero*.png",
+                SearchOption.TopDirectoryOnly))
+            {
+                File.Delete(hero);
+            }
+        }
+
+        WriteIdentity(
+            candidateRoot,
+            2,
+            "0.5.0-beta.2");
+
+        var publicArtifact =
+            ZipDirectory(candidateRoot);
+
+        Check(
+            "public-style candidate contains no local hero assets",
+            !ZipContainsLocalHero(publicArtifact));
+
+        var candidate =
+            SignArtifact(
+                2,
+                "0.5.0-beta.2",
+                publicArtifact,
+                rsa);
+
+        var staged =
+            new AppUpdateStore(
+                fixture.Root)
+                .StageCandidate(
+                    candidate.ManifestBytes,
+                    candidate.Signature,
+                    candidate.ArtifactBytes,
+                    publicKey);
+
+        var stagedHero =
+            staged.CandidateAppRoot == null
+                ? null
+                : Path.Combine(
+                    staged.CandidateAppRoot,
+                    "assets",
+                    "wrn-hero-local.png");
+
+        Check(
+            "local WRN brand asset restored into staged candidate",
+            staged.Success
+            && File.Exists(stagedHero)
+            && localHero.SequenceEqual(
+                File.ReadAllBytes(stagedHero)));
     }
 
     private static void TestActivationSuccess(
@@ -869,6 +969,39 @@ internal static class AppUpdateTests
             }
 
             return memory.ToArray();
+        }
+    }
+
+    private static bool ZipContainsLocalHero(
+        byte[] bytes)
+    {
+        using (var memory =
+            new MemoryStream(
+                bytes,
+                false))
+        using (var archive =
+            new ZipArchive(
+                memory,
+                ZipArchiveMode.Read,
+                false))
+        {
+            return archive.Entries.Any(
+                delegate(ZipArchiveEntry entry)
+                {
+                    var name =
+                        Path.GetFileName(
+                            entry.FullName
+                                .Replace(
+                                    '/',
+                                    Path.DirectorySeparatorChar));
+
+                    return name.StartsWith(
+                        "wrn-hero",
+                        StringComparison.OrdinalIgnoreCase)
+                        && name.EndsWith(
+                            ".png",
+                            StringComparison.OrdinalIgnoreCase);
+                });
         }
     }
 
