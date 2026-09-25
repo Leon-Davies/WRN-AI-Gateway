@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Web.Script.Serialization;
@@ -202,7 +204,7 @@ internal static class ModeCoordinatorTests
         string tempRoot)
     {
         var fixture =
-            CreateFixture(tempRoot, "healthy-wrn", 58131);
+            CreateFixture(tempRoot, "healthy-wrn", GetFreeLoopbackPort());
 
         var report = ModeCoordinator.Inspect(
             "wrn",
@@ -314,7 +316,7 @@ internal static class ModeCoordinatorTests
         string tempRoot)
     {
         var fixture =
-            CreateFixture(tempRoot, "missing-credential", 58132);
+            CreateFixture(tempRoot, "missing-credential", GetFreeLoopbackPort());
         File.Delete(
             Path.Combine(
                 fixture.StateRoot,
@@ -340,7 +342,7 @@ internal static class ModeCoordinatorTests
         string tempRoot)
     {
         var fixture =
-            CreateFixture(tempRoot, "recovery-install", 58133);
+            CreateFixture(tempRoot, "recovery-install", GetFreeLoopbackPort());
         var discovery = HealthyWtw();
         discovery.InstallKind =
             ClaudeInstallKind.RecoveryDiagnostic;
@@ -364,7 +366,7 @@ internal static class ModeCoordinatorTests
         string tempRoot)
     {
         var fixture =
-            CreateFixture(tempRoot, "pending-recovery", 58134);
+            CreateFixture(tempRoot, "pending-recovery", GetFreeLoopbackPort());
         var catalogue = new CatalogueStore(
             baseDir,
             Path.Combine(fixture.StateRoot, "catalogue"))
@@ -421,7 +423,7 @@ internal static class ModeCoordinatorTests
         string tempRoot)
     {
         var fixture =
-            CreateFixture(tempRoot, "healthy-wtw-restore", 58135);
+            CreateFixture(tempRoot, "healthy-wtw-restore", GetFreeLoopbackPort());
         var catalogue = new CatalogueStore(
             baseDir,
             Path.Combine(fixture.StateRoot, "catalogue"))
@@ -463,6 +465,23 @@ internal static class ModeCoordinatorTests
         Check(
             "WTW restore still cannot execute live",
             !report.LiveExecutionAllowed);
+    }
+
+    private static int GetFreeLoopbackPort()
+    {
+        var listener = new TcpListener(
+            IPAddress.Loopback,
+            0);
+        listener.Start();
+        try
+        {
+            return ((IPEndPoint)
+                listener.LocalEndpoint).Port;
+        }
+        finally
+        {
+            listener.Stop();
+        }
     }
 
     private static void WriteJson(
