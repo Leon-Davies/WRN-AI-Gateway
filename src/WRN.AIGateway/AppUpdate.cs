@@ -48,6 +48,8 @@ namespace WRN.AIGateway
         public const int SupportedSchemaVersion = 1;
         public const int MaximumArtifactBytes =
             100 * 1024 * 1024;
+        public const long MaximumExtractedBytes =
+            250L * 1024L * 1024L;
 
         // Dedicated application-release key. The matching private key is
         // CurrentUser-DPAPI protected in the maintainer environment only.
@@ -774,9 +776,27 @@ namespace WRN.AIGateway
                         "Archive entry count invalid.");
                 }
 
+                long extractedBytes = 0;
+
                 foreach (var entry
                     in archive.Entries)
                 {
+                    if (entry.Length < 0)
+                    {
+                        throw new InvalidDataException(
+                            "Archive entry size invalid.");
+                    }
+
+                    extractedBytes +=
+                        entry.Length;
+                    if (extractedBytes
+                        > AppUpdateTrust
+                            .MaximumExtractedBytes)
+                    {
+                        throw new InvalidDataException(
+                            "Archive expanded size limit exceeded.");
+                    }
+
                     var relative =
                         (entry.FullName
                             ?? string.Empty)
