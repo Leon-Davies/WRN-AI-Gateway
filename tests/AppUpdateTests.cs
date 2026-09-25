@@ -108,6 +108,11 @@ internal static class AppUpdateTests
                 temp,
                 rsa,
                 publicKey);
+            TestLockedBrandAssetDoesNotBlockUpdate(
+                dist,
+                temp,
+                rsa,
+                publicKey);
             TestActivationSuccess(
                 dist,
                 temp,
@@ -518,12 +523,126 @@ internal static class AppUpdateTests
                     "assets",
                     "wrn-hero-local.png");
 
-        Check(
-            "local WRN brand asset restored into staged candidate",
+        var brandPreserved =
             staged.Success
             && File.Exists(stagedHero)
             && localHero.SequenceEqual(
-                File.ReadAllBytes(stagedHero)));
+                File.ReadAllBytes(stagedHero));
+
+        if (!brandPreserved)
+        {
+            Console.WriteLine(
+                "BRAND_PRESERVATION_DIAGNOSTIC status="
+                + (staged.Status ?? "<null>")
+                + " sourceExists="
+                + File.Exists(
+                    Path.Combine(
+                        fixture.Current,
+                        "assets",
+                        "wrn-hero-local.png"))
+                + " stagedPath="
+                + (stagedHero ?? "<null>"));
+        }
+
+        Check(
+            "local WRN brand asset restored into staged candidate",
+            brandPreserved);
+    }
+
+    private static void TestLockedBrandAssetDoesNotBlockUpdate(
+        string dist,
+        string temp,
+        RSACryptoServiceProvider rsa,
+        string publicKey)
+    {
+        var fixture =
+            CreateFixture(
+                dist,
+                temp,
+                "locked-brand-nonblocking",
+                1,
+                -1);
+
+        var lockedHero =
+            Path.Combine(
+                fixture.Current,
+                "assets",
+                "wrn-hero-locked.png");
+
+        WriteSentinel(
+            fixture.Current,
+            @"assets\wrn-hero-locked.png",
+            Encoding.UTF8.GetBytes(
+                "locked-local-brand"));
+
+        var candidateRoot =
+            Path.Combine(
+                temp,
+                "locked-brand-candidate");
+
+        if (Directory.Exists(candidateRoot))
+            Directory.Delete(candidateRoot, true);
+
+        CopyDirectory(
+            dist,
+            candidateRoot);
+
+        var candidateAssets =
+            Path.Combine(
+                candidateRoot,
+                "assets");
+
+        if (Directory.Exists(candidateAssets))
+        {
+            foreach (var hero in Directory.GetFiles(
+                candidateAssets,
+                "wrn-hero*.png",
+                SearchOption.TopDirectoryOnly))
+            {
+                File.Delete(hero);
+            }
+        }
+
+        WriteIdentity(
+            candidateRoot,
+            2,
+            "0.5.0-beta.2");
+
+        var publicArtifact =
+            ZipDirectory(candidateRoot);
+
+        var candidate =
+            SignArtifact(
+                2,
+                "0.5.0-beta.2",
+                publicArtifact,
+                rsa);
+
+        AppUpdateStageResult staged;
+
+        using (var locked =
+            new FileStream(
+                lockedHero,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.None))
+        {
+            staged =
+                new AppUpdateStore(
+                    fixture.Root)
+                    .StageCandidate(
+                        candidate.ManifestBytes,
+                        candidate.Signature,
+                        candidate.ArtifactBytes,
+                        publicKey);
+        }
+
+        Check(
+            "locked cosmetic brand asset does not block signed update",
+            staged.Success
+            && staged.Changed
+            && staged.Status
+                == "UPDATE_STAGED");
     }
 
     private static void TestActivationSuccess(
