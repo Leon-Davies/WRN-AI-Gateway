@@ -83,6 +83,8 @@ Exit: a signed catalogue change published remotely can add/remove/update a model
 
 ## Phase 2C — Maintainer publisher
 
+**Status: implementation candidate complete; atomic publication, qualification gating and client propagation proved.**
+
 Goal: allow the maintainer to publish qualified model changes from the maintainer laptop before beta rollout.
 
 Deliverables:
