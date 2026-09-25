@@ -401,10 +401,10 @@ namespace WRN.AIGateway
         private static string QuoteArgument(
             string value)
         {
-            return """
+            return "\""
                 + (value ?? string.Empty)
-                    .Replace(""", "\"")
-                + """;
+                    .Replace("\"", "\\\"")
+                + "\"";
         }
 
         private static GatewayRuntimeResult Fail(
