@@ -927,6 +927,7 @@ internal static class ClaudeTransitionTests
                     ExpectedSha256 = File.Exists(path)
                         ? TransitionHash.Sha256(File.ReadAllBytes(path))
                         : null,
+                    DesiredExists = true,
                     DesiredBytes = desired,
                     DesiredSha256 = TransitionHash.Sha256(desired),
                     Purpose = "guard-test"
