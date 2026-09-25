@@ -10,13 +10,16 @@ namespace WRN.AIGateway
         [STAThread]
         public static void Main()
         {
-            if (DiscoveryCommand.TryRun(Environment.GetCommandLineArgs()))
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            var args = Environment.GetCommandLineArgs();
+
+            if (CatalogueCommand.TryRun(args, baseDir))
+                return;
+            if (DiscoveryCommand.TryRun(args))
                 return;
 
             var app = new Application();
             app.ShutdownMode = ShutdownMode.OnMainWindowClose;
-
-            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
             var xamlPath = Path.Combine(baseDir, "ui", "MainWindow.xaml");
             if (!File.Exists(xamlPath))
             {

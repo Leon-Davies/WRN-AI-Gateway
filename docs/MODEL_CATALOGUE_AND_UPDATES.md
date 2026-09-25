@@ -163,7 +163,19 @@ Possible development backends include Git-based hosting or simple HTTPS object h
 
 Production selection must satisfy organisational access/policy requirements.
 
-## 12. Application self-update
+## 12. Current Phase 2B implementation
+
+The native client now verifies an RSA-SHA256 signature over the exact catalogue bytes, validates schema/policy, retains last-known-good releases, rejects signed rollback/release-number reuse, and renders Home/Models/Updates from the validated catalogue.
+
+The development distribution backend is the repository's dedicated `catalogue-beta` branch over HTTPS. Clients check on launcher start and every 30 minutes while the launcher remains open. Transport is deliberately replaceable; catalogue semantics do not depend on GitHub.
+
+The maintainer private signing key is not shipped to clients or committed to the repository. Ordinary installations contain only the public verification key.
+
+Publication testing proved release 1 → 2 → 3 propagation without an application rebuild/reinstall. It also established a Phase 2C requirement: the publisher must sign the exact served bytes and publish catalogue + signature atomically.
+
+See `PHASE2B_SIGNED_CATALOGUE.md` for qualification evidence and failure observations.
+
+## 13. Application self-update
 
 Application updates are separate from model catalogue updates.
 

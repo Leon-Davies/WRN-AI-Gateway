@@ -54,7 +54,9 @@ $Version | Set-Content (Join-Path $release "VERSION.txt") -Encoding ASCII
 $hashTargets = @(
     (Join-Path $release "WRN-AI-Gateway-Setup.exe"),
     (Join-Path $appDir "WRN-AI-Gateway.exe"),
-    (Join-Path $appDir "ui\MainWindow.xaml")
+    (Join-Path $appDir "ui\MainWindow.xaml"),
+    (Join-Path $appDir "catalogue\catalogue.json"),
+    (Join-Path $appDir "catalogue\catalogue.sig")
 )
 $hashLines = foreach ($target in $hashTargets) {
     $hash = Get-FileHash $target -Algorithm SHA256

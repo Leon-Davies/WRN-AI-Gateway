@@ -9,6 +9,7 @@ $src = Join-Path $root "src\WRN.AIGateway"
 $dist = Join-Path $root "dist"
 $uiOut = Join-Path $dist "ui"
 $assetOut = Join-Path $dist "assets"
+$catalogueOut = Join-Path $dist "catalogue"
 
 $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 $framework = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319"
@@ -25,8 +26,11 @@ if (Test-Path $dist) {
 New-Item -ItemType Directory -Path $dist | Out-Null
 New-Item -ItemType Directory -Path $uiOut | Out-Null
 New-Item -ItemType Directory -Path $assetOut | Out-Null
+New-Item -ItemType Directory -Path $catalogueOut | Out-Null
 
 Copy-Item (Join-Path $src "ui\MainWindow.xaml") (Join-Path $uiOut "MainWindow.xaml")
+Copy-Item (Join-Path $src "catalogue\catalogue.json") (Join-Path $catalogueOut "catalogue.json")
+Copy-Item (Join-Path $src "catalogue\catalogue.sig") (Join-Path $catalogueOut "catalogue.sig")
 
 $localAssetDir = Join-Path $src "local-assets"
 $localHeroes = @()
@@ -79,6 +83,7 @@ foreach ($reference in $references) {
 $args += (Join-Path $src "Program.cs")
 $args += (Join-Path $src "AppController.cs")
 $args += (Join-Path $src "ClaudeDiscovery.cs")
+$args += (Join-Path $src "ModelCatalogue.cs")
 
 & $csc $args
 if ($LASTEXITCODE -ne 0) {

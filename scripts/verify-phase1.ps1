@@ -82,12 +82,12 @@ $requiredUi = @(
     "HeroImageB",
     "ModelsShortcutButton",
     "UpdatesShortcutButton",
-    "ModelDeepSeekButton",
-    "ModelSonnetButton",
-    "ModelAstraButton",
-    "ModelSolButton",
-    "ModelLunaButton",
-    "ModelGlmButton",
+    "ModelsGrid",
+    "ModelsFootnote",
+    "SpotlightBadge",
+    "SpotlightName",
+    "SpotlightTagline",
+    "CatalogueUpdateTitle",
     "ModelRequestButton",
     "ReportBugButton",
     "Brought to you by the Willis Research Network",
@@ -116,12 +116,9 @@ foreach ($requiredControllerText in @(
     "CreateFlatButtonTemplate",
     "mailto:",
     "Leon.Davies@wtwco.com",
-    '$0.0018',
-    '$0.014',
-    '$0.070',
-    '$0.028',
-    '$0.0016',
-    '$0.0008'
+    "RenderCatalogue",
+    "CreateModelCatalogueButton",
+    "ConfigureCatalogueRefresh"
 )) {
     if (-not $controller.Contains($requiredControllerText)) {
         throw "Required controller behaviour is missing: $requiredControllerText"
