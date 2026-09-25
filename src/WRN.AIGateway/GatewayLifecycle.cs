@@ -403,7 +403,6 @@ namespace WRN.AIGateway
         {
             return """
                 + (value ?? string.Empty)
-                    .Replace("\", "\\")
                     .Replace(""", "\"")
                 + """;
         }
