@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Web.Script.Serialization;
 
 namespace WRN.AIGateway
@@ -63,6 +64,32 @@ namespace WRN.AIGateway
             if (key.Length < 16)
                 return Invalid("KEY_FORMAT_INVALID", key);
 
+            OpenRouterKeyValidation result = null;
+            for (var attempt = 0; attempt < 2; attempt++)
+            {
+                result = ValidateOnce(key);
+
+                if (result.Valid
+                    || !RuntimeFailureCatalog
+                        .IsSafeCredentialValidationRetry(
+                            result.Status)
+                    || attempt > 0)
+                {
+                    return result;
+                }
+
+                Thread.Sleep(250);
+            }
+
+            return result
+                ?? Invalid(
+                    "KEY_VALIDATION_FAILED",
+                    key);
+        }
+
+        private static OpenRouterKeyValidation ValidateOnce(
+            string key)
+        {
             try
             {
                 ServicePointManager.SecurityProtocol =
