@@ -158,6 +158,8 @@ Exit: an application update can be published from the maintainer environment and
 
 ## Phase 6 — Failure containment qualification
 
+**Status: in progress. Cross-system fault injection, no-raw-error acceptance and the privacy-safe diagnostics bundle are implemented and qualified. Owner UX review and managed-Claude switching UX qualification remain before Phase 6 can close.**
+
 Goal: make non-happy paths fit for non-technical users.
 
 Deliverables:
