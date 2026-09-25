@@ -73,7 +73,10 @@ namespace WRN.AIGateway.Gateway
                 Config = LoadConfig(Path.Combine(gatewayRoot, "gateway.json"));
                 OpenRouterKey = LoadProtectedKey(
                     Path.Combine(StateRoot, "credentials", "openrouter.key.dpapi"));
-                CatalogueLoad = new CatalogueStore(baseDir).LoadBestAvailable();
+                CatalogueLoad = new CatalogueStore(
+                    baseDir,
+                    Path.Combine(StateRoot, "catalogue"))
+                    .LoadBestAvailable();
 
                 var handler = new HttpClientHandler
                 {
