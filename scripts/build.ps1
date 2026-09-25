@@ -94,6 +94,7 @@ $args += (Join-Path $src "OpenRouterCredentials.cs")
 $args += (Join-Path $src "RuntimeFailures.cs")
 $args += (Join-Path $src "AppUpdate.cs")
 $args += (Join-Path $src "AppUpdateRuntime.cs")
+$args += (Join-Path $src "DiagnosticsBundle.cs")
 
 & $csc $args
 if ($LASTEXITCODE -ne 0) {
