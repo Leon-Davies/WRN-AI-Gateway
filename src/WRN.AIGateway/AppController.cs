@@ -144,7 +144,7 @@ namespace WRN.AIGateway
                     ShowPage("Settings");
                     ShowToast(
                         "Connect OpenRouter",
-                        "Connect your OpenRouter key before WRN Claude can be enabled on this PC.");
+                        "Connect OpenRouter before WRN Claude can be enabled on this PC.");
                     return;
                 }
 
@@ -420,7 +420,7 @@ namespace WRN.AIGateway
             {
                 _availableAppUpdate = null;
                 status.Text =
-                    FriendlyAppUpdateMessage(
+                    UserFacingFailureMessages.AppUpdate(
                         result == null
                             ? "UPDATE_CHECK_FAILED"
                             : result.Status);
@@ -526,7 +526,7 @@ namespace WRN.AIGateway
                                     {
                                         _stagedAppUpdate = null;
                                         status.Text =
-                                            FriendlyAppUpdateMessage(
+                                            UserFacingFailureMessages.AppUpdate(
                                                 result == null
                                                     ? "UPDATE_DOWNLOAD_FAILED"
                                                     : result.Status);
@@ -614,7 +614,7 @@ namespace WRN.AIGateway
             if (!activation.Started)
             {
                 status.Text =
-                    FriendlyAppUpdateMessage(
+                    UserFacingFailureMessages.AppUpdate(
                         activation.Status);
                 button.Content =
                     "Install update";
@@ -629,44 +629,6 @@ namespace WRN.AIGateway
                 "Installing update…";
 
             _window.Close();
-        }
-
-        private static string FriendlyAppUpdateMessage(
-            string status)
-        {
-            var value =
-                status
-                ?? string.Empty;
-
-            if (value == "UPDATE_NETWORK_UNAVAILABLE"
-                || value == "UPDATE_CHECK_FAILED")
-            {
-                return "Couldn't check for updates. Try again.";
-            }
-
-            if (value == "UPDATE_DEFERRED_CLAUDE_RUNNING")
-                return "Close Claude before installing the update.";
-
-            if (value == "UPDATE_DEFERRED_GATEWAY_RUNNING")
-                return "Close WRN Claude and try again.";
-
-            if (value == "UPDATE_DEFERRED_RECOVERY_PENDING")
-                return "WRN AI Gateway needs to finish recovery before updating.";
-
-            if (value.Contains("SIGNATURE")
-                || value.Contains("HASH")
-                || value.Contains("MANIFEST")
-                || value.Contains("IDENTITY")
-                || value.Contains("ARCHIVE")
-                || value.Contains("ROLLBACK"))
-            {
-                return "The update couldn't be verified. Your current version was kept.";
-            }
-
-            if (value.Contains("HELPER"))
-                return "The update couldn't start. Try again.";
-
-            return "The update couldn't be completed. Your current version was kept.";
         }
 
         private void ApplyPersonalisation()
