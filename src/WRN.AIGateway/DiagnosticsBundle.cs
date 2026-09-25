@@ -65,15 +65,26 @@ namespace WRN.AIGateway
             string baseDir,
             string stateRoot)
         {
+            var outputRoot =
+                Path.Combine(
+                    Environment.GetFolderPath(
+                        Environment.SpecialFolder.MyDocuments),
+                    "WRN AI Gateway",
+                    "Diagnostics");
+
+            return Create(
+                baseDir,
+                stateRoot,
+                outputRoot);
+        }
+
+        internal static DiagnosticsBundleResult Create(
+            string baseDir,
+            string stateRoot,
+            string outputRoot)
+        {
             try
             {
-                var outputRoot =
-                    Path.Combine(
-                        Environment.GetFolderPath(
-                            Environment.SpecialFolder.MyDocuments),
-                        "WRN AI Gateway",
-                        "Diagnostics");
-
                 Directory.CreateDirectory(outputRoot);
 
                 var stamp =
@@ -301,8 +312,8 @@ namespace WRN.AIGateway
                 Path.Combine(
                     stateRoot,
                     "updates",
-                    "activation-audit.json"),
-                "update-activation-audit.json",
+                    "last-activation.json"),
+                "update-last-activation.json",
                 100);
         }
 
