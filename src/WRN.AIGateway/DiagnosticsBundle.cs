@@ -63,7 +63,7 @@ namespace WRN.AIGateway
 
         private static readonly Regex SensitiveFieldPattern =
             new Regex(
-                @"(?i)(\"?(?:prompt|content|message|text)\"?\s*[:=]\s*)(\"[^\"]*\"|'[^']*'|[^,}\r\n]+)",
+                @"(?i)(""?(?:prompt|content|message|text)""?\s*[:=]\s*)(""[^""]*""|'[^']*'|[^,}\r\n]+)",
                 RegexOptions.Compiled);
 
         private static readonly Regex EmailPattern =
