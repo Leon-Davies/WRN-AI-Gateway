@@ -144,6 +144,9 @@
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Chrome" Property="Background" Value="#DCCAE5"/>
                             </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Chrome" Property="Opacity" Value="0.42"/>
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -327,6 +330,12 @@
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE895;" FontSize="15" Width="28"/>
                                 <TextBlock Text="What's new"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="SettingsNavButton" AutomationProperties.Name="Settings" Style="{StaticResource NavButtonStyle}" Tag="inactive">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="15" Width="28"/>
+                                <TextBlock Text="Settings"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="SupportNavButton" AutomationProperties.Name="Support" Style="{StaticResource NavButtonStyle}" Tag="inactive">
@@ -558,6 +567,54 @@
                                             <TextBlock x:Name="CatalogueUpdateTitle" Text="WRN AI Gateway" FontSize="16" FontWeight="SemiBold" Foreground="#302735"/>
                                             <TextBlock x:Name="CatalogueUpdateBody" Text="Signed model catalogue ready."
                                                        Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,7,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <Grid x:Name="SettingsPage" Visibility="Collapsed">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                      Padding="20,6,20,12">
+                            <StackPanel Margin="0,4,0,20">
+                                <TextBlock Text="Settings" Foreground="#2D2531" FontSize="29" FontWeight="SemiBold"
+                                           Margin="0,0,0,18"/>
+
+                                <Border Style="{StaticResource CardStyle}" Padding="22" Margin="20,0,20,0">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Border Width="44" Height="44" CornerRadius="12" Background="#F0E8F4">
+                                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE72E;" Foreground="#5B1E72"
+                                                           FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <TextBlock Text="OpenRouter" Foreground="#302735" FontSize="18"
+                                                       FontWeight="SemiBold" VerticalAlignment="Center"
+                                                       Margin="14,0,0,0"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                                    VerticalAlignment="Center">
+                                            <Button x:Name="CredentialConnectButton" AutomationProperties.Name="Connect OpenRouter"
+                                                    Content="Connect" Height="42" MinWidth="108" Margin="0,0,10,0"
+                                                    Style="{StaticResource PrimaryButtonStyle}"/>
+                                            <Button x:Name="CredentialTestButton" AutomationProperties.Name="Test OpenRouter connection"
+                                                    Content="Test" Height="42" MinWidth="88" Margin="0,0,10,0"
+                                                    Style="{StaticResource SecondaryButtonStyle}"/>
+                                            <Button x:Name="CredentialRemoveButton" AutomationProperties.Name="Remove OpenRouter key"
+                                                    Content="Remove" Height="42" MinWidth="88" Margin="0,0,10,0"
+                                                    Style="{StaticResource SecondaryButtonStyle}"/>
+                                            <Button x:Name="CredentialInfoButton" AutomationProperties.Name="About OpenRouter connection"
+                                                    Height="42" Width="42" ToolTip="About this connection"
+                                                    Style="{StaticResource SecondaryButtonStyle}">
+                                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE946;" FontSize="15"
+                                                           VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                            </Button>
                                         </StackPanel>
                                     </Grid>
                                 </Border>

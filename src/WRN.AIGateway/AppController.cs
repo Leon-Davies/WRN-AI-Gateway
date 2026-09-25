@@ -24,6 +24,7 @@ namespace WRN.AIGateway
     {
         private readonly Window _window;
         private readonly string _baseDir;
+        private readonly string _stateRoot;
         private readonly Dictionary<string, FrameworkElement> _pages = new Dictionary<string, FrameworkElement>();
         private readonly Dictionary<string, Button> _navButtons = new Dictionary<string, Button>();
         private readonly DispatcherTimer _toastTimer = new DispatcherTimer();
@@ -32,6 +33,7 @@ namespace WRN.AIGateway
         private readonly DispatcherTimer _catalogueTimer = new DispatcherTimer();
         private CatalogueLoadResult _catalogueLoad;
         private bool _catalogueRefreshInFlight;
+        private bool _credentialOperationInFlight;
         private readonly List<BitmapImage> _heroImages = new List<BitmapImage>();
         private readonly Dictionary<string, ModelInfo> _models = new Dictionary<string, ModelInfo>(StringComparer.OrdinalIgnoreCase);
         private string _greetingTarget = string.Empty;
@@ -48,6 +50,10 @@ namespace WRN.AIGateway
         {
             _window = window;
             _baseDir = baseDir;
+            _stateRoot = Path.Combine(
+                Environment.GetFolderPath(
+                    Environment.SpecialFolder.LocalApplicationData),
+                "WRN-AI-Gateway");
         }
 
         public void Initialize()
@@ -61,6 +67,7 @@ namespace WRN.AIGateway
             TryLoadBrandHero();
             ConfigureToast();
             RenderCatalogue();
+            RefreshCredentialStatus();
             ShowPage("Home");
             ConfigureCatalogueRefresh();
         }
@@ -101,6 +108,7 @@ namespace WRN.AIGateway
             RegisterPage("Home", "HomePage", "HomeNavButton");
             RegisterPage("Models", "ModelsPage", "ModelsNavButton");
             RegisterPage("Updates", "UpdatesPage", "UpdatesNavButton");
+            RegisterPage("Settings", "SettingsPage", "SettingsNavButton");
             RegisterPage("Support", "SupportPage", "SupportNavButton");
 
             foreach (var pair in _navButtons)
@@ -124,11 +132,41 @@ namespace WRN.AIGateway
             };
             Find<Button>("WRNLaunchButton").Click += delegate
             {
-                ShowToast("WRN Claude", "WRN launch wiring is not enabled yet.");
+                var credential =
+                    OpenRouterCredentialStore.Inspect(_stateRoot);
+                if (!credential.Configured
+                    || !credential.Decryptable)
+                {
+                    ShowPage("Settings");
+                    ShowToast(
+                        "Connect OpenRouter",
+                        "Connect your OpenRouter key before WRN Claude can be enabled on this PC.");
+                    return;
+                }
+
+                ShowToast(
+                    "WRN Claude",
+                    "Your OpenRouter connection is ready. Claude switching remains disabled until managed-Claude qualification is complete.");
             };
             Find<Button>("ModelsShortcutButton").Click += delegate { ShowPage("Models"); };
             Find<Button>("UpdatesShortcutButton").Click += delegate { ShowPage("Updates"); };
 
+            Find<Button>("CredentialConnectButton").Click += delegate
+            {
+                ShowOpenRouterCredentialDialog();
+            };
+            Find<Button>("CredentialTestButton").Click += delegate
+            {
+                TestOpenRouterCredential();
+            };
+            Find<Button>("CredentialRemoveButton").Click += delegate
+            {
+                ShowRemoveOpenRouterCredentialDialog();
+            };
+            Find<Button>("CredentialInfoButton").Click += delegate
+            {
+                ShowOpenRouterInfoDialog();
+            };
 
             Find<Button>("ModelRequestButton").Click += delegate
             {
@@ -312,6 +350,483 @@ namespace WRN.AIGateway
             current.BeginAnimation(UIElement.OpacityProperty, fadeOut);
             next.BeginAnimation(UIElement.OpacityProperty, fadeIn);
             _heroAActive = !_heroAActive;
+        }
+
+        private void RefreshCredentialStatus()
+        {
+            CredentialStatus status = null;
+            try
+            {
+                status =
+                    OpenRouterCredentialStore.Inspect(
+                        _stateRoot);
+            }
+            catch
+            {
+            }
+
+            var configured =
+                status != null
+                && status.Configured;
+            var ready =
+                configured
+                && status.Decryptable;
+
+            Find<Button>("CredentialConnectButton").Content =
+                ready
+                    ? "Replace"
+                    : "Connect";
+            Find<Button>("CredentialConnectButton").IsEnabled =
+                !_credentialOperationInFlight;
+            Find<Button>("CredentialTestButton").IsEnabled =
+                ready
+                && !_credentialOperationInFlight;
+            Find<Button>("CredentialRemoveButton").IsEnabled =
+                configured
+                && !_credentialOperationInFlight;
+        }
+
+        private void ShowOpenRouterCredentialDialog()
+        {
+            var current =
+                OpenRouterCredentialStore.Inspect(
+                    _stateRoot);
+            var replacing = current.Configured;
+
+            var dialog = CreateDialog(
+                replacing
+                    ? "Replace key"
+                    : "Connect",
+                520,
+                300);
+
+            var body =
+                new StackPanel
+                {
+                    Margin = new Thickness(28)
+                };
+
+            body.Children.Add(
+                new TextBlock
+                {
+                    Text = replacing
+                        ? "Replace key"
+                        : "Connect",
+                    FontSize = 24,
+                    FontWeight =
+                        FontWeights.SemiBold,
+                    Foreground = Brush("#302536"),
+                    Margin =
+                        new Thickness(0, 0, 0, 18)
+                });
+
+            var password =
+                new PasswordBox
+                {
+                    Height = 46,
+                    Padding = new Thickness(
+                        12,
+                        10,
+                        12,
+                        10),
+                    FontSize = 14,
+                    BorderBrush = Brush("#D7CFDC"),
+                    BorderThickness =
+                        new Thickness(1),
+                    Background = Brushes.White,
+                    Foreground = Brush("#302536")
+                };
+
+            body.Children.Add(
+                new Border
+                {
+                    Background = Brushes.White,
+                    BorderBrush = Brush("#D7CFDC"),
+                    BorderThickness =
+                        new Thickness(1),
+                    CornerRadius =
+                        new CornerRadius(9),
+                    Child = password
+                });
+
+            var resultText =
+                new TextBlock
+                {
+                    Text = string.Empty,
+                    Visibility = Visibility.Collapsed,
+                    FontSize = 12.5,
+                    Foreground = Brush("#9C3D3D"),
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin =
+                        new Thickness(0, 10, 0, 16)
+                };
+            body.Children.Add(resultText);
+
+            var actions =
+                new StackPanel
+                {
+                    Orientation =
+                        Orientation.Horizontal,
+                    HorizontalAlignment =
+                        HorizontalAlignment.Right
+                };
+
+            var cancel =
+                DialogButton("Cancel", false);
+            cancel.Click += delegate
+            {
+                if (!_credentialOperationInFlight)
+                    dialog.Close();
+            };
+            actions.Children.Add(cancel);
+
+            var save =
+                DialogButton(
+                    replacing
+                        ? "Replace"
+                        : "Connect",
+                    true);
+            save.Margin =
+                new Thickness(10, 0, 0, 0);
+            save.Click += delegate
+            {
+                if (_credentialOperationInFlight)
+                    return;
+
+                var candidate =
+                    (password.Password
+                        ?? string.Empty).Trim();
+                password.Clear();
+
+                if (candidate.Length < 16)
+                {
+                    resultText.Text =
+                        "Enter a valid OpenRouter key.";
+                    resultText.Visibility =
+                        Visibility.Visible;
+                    candidate = null;
+                    password.Focus();
+                    return;
+                }
+
+                _credentialOperationInFlight = true;
+                save.IsEnabled = false;
+                cancel.IsEnabled = false;
+                password.IsEnabled = false;
+                resultText.Text = "Checking…";
+                resultText.Foreground =
+                    Brush("#5A1A75");
+                resultText.Visibility =
+                    Visibility.Visible;
+
+                var task = Task.Run(
+                    delegate
+                    {
+                        try
+                        {
+                            return
+                                OpenRouterCredentialStore
+                                    .ValidateAndSave(
+                                        candidate,
+                                        _stateRoot);
+                        }
+                        finally
+                        {
+                            candidate = null;
+                        }
+                    });
+
+                task.ContinueWith(
+                    delegate(Task<OpenRouterKeyValidation> completed)
+                    {
+                        _window.Dispatcher.BeginInvoke(
+                            new Action(
+                                delegate
+                                {
+                                    _credentialOperationInFlight = false;
+
+                                    if (completed.Status
+                                            == TaskStatus.RanToCompletion
+                                        && completed.Result != null
+                                        && completed.Result.Valid)
+                                    {
+                                        try
+                                        {
+                                            GatewayLifecycle.StopOwned(
+                                                _baseDir,
+                                                _stateRoot);
+                                        }
+                                        catch
+                                        {
+                                        }
+
+                                        RefreshCredentialStatus();
+                                        dialog.Close();
+                                        ShowToast(
+                                            "Connected",
+                                            "OpenRouter is ready.");
+                                        return;
+                                    }
+
+                                    save.IsEnabled = true;
+                                    cancel.IsEnabled = true;
+                                    password.IsEnabled = true;
+                                    password.Focus();
+
+                                    var validation =
+                                        completed.Status
+                                            == TaskStatus.RanToCompletion
+                                            ? completed.Result
+                                            : null;
+
+                                    resultText.Text =
+                                        FriendlyCredentialError(
+                                            validation == null
+                                                ? "KEY_VALIDATION_FAILED"
+                                                : validation.Status);
+                                    resultText.Foreground =
+                                        Brush("#9C3D3D");
+                                    resultText.Visibility =
+                                        Visibility.Visible;
+                                    RefreshCredentialStatus();
+                                }));
+                    });
+            };
+            actions.Children.Add(save);
+            body.Children.Add(actions);
+
+            dialog.Content =
+                CreateDialogShell(
+                    dialog,
+                    body);
+            dialog.Loaded += delegate
+            {
+                password.Focus();
+            };
+            dialog.ShowDialog();
+        }
+
+        private void TestOpenRouterCredential()
+        {
+            if (_credentialOperationInFlight)
+                return;
+
+            _credentialOperationInFlight = true;
+            ApplyCredentialBusyState();
+
+            Task.Run(
+                delegate
+                {
+                    return
+                        OpenRouterCredentialStore
+                            .TestStored(_stateRoot);
+                })
+                .ContinueWith(
+                    delegate(Task<OpenRouterKeyValidation> completed)
+                    {
+                        _window.Dispatcher.BeginInvoke(
+                            new Action(
+                                delegate
+                                {
+                                    _credentialOperationInFlight = false;
+                                    RefreshCredentialStatus();
+
+                                    var validation =
+                                        completed.Status
+                                            == TaskStatus.RanToCompletion
+                                            ? completed.Result
+                                            : null;
+
+                                    if (validation != null
+                                        && validation.Valid)
+                                    {
+                                        ShowToast(
+                                            "Connection works",
+                                            "OpenRouter is ready.");
+                                    }
+                                    else
+                                    {
+                                        ShowToast(
+                                            "Connection failed",
+                                            FriendlyCredentialError(
+                                                validation == null
+                                                    ? "KEY_VALIDATION_FAILED"
+                                                    : validation.Status));
+                                    }
+                                }));
+                    });
+        }
+
+        private void ApplyCredentialBusyState()
+        {
+            Find<Button>(
+                "CredentialConnectButton").IsEnabled =
+                false;
+            Find<Button>(
+                "CredentialTestButton").IsEnabled =
+                false;
+            Find<Button>(
+                "CredentialRemoveButton").IsEnabled =
+                false;
+        }
+
+        private void ShowOpenRouterInfoDialog()
+        {
+            var dialog = CreateDialog(
+                "About OpenRouter",
+                500,
+                360);
+
+            var body =
+                new StackPanel
+                {
+                    Margin = new Thickness(28)
+                };
+
+            body.Children.Add(
+                new TextBlock
+                {
+                    Text = "About OpenRouter",
+                    FontSize = 24,
+                    FontWeight =
+                        FontWeights.SemiBold,
+                    Foreground = Brush("#302536"),
+                    Margin =
+                        new Thickness(0, 0, 0, 18)
+                });
+
+            body.Children.Add(
+                new TextBlock
+                {
+                    Text =
+                        "• OpenRouter is the service WRN Claude uses to access different AI models.\n\n"
+                        + "• It lets us add or update models without reinstalling the app.\n\n"
+                        + "• The models available in WRN Claude are managed through the WRN model catalogue.",
+                    FontSize = 13.5,
+                    Foreground = Brush("#5F5664"),
+                    TextWrapping = TextWrapping.Wrap,
+                    LineHeight = 19
+                });
+
+            var close =
+                DialogButton("Close", true);
+            close.HorizontalAlignment =
+                HorizontalAlignment.Right;
+            close.Margin =
+                new Thickness(0, 24, 0, 0);
+            close.Click += delegate
+            {
+                dialog.Close();
+            };
+            body.Children.Add(close);
+
+            dialog.Content =
+                CreateDialogShell(
+                    dialog,
+                    body);
+            dialog.ShowDialog();
+        }
+
+        private void
+            ShowRemoveOpenRouterCredentialDialog()
+        {
+            var status =
+                OpenRouterCredentialStore.Inspect(
+                    _stateRoot);
+            if (!status.Configured)
+                return;
+
+            var dialog = CreateDialog(
+                "Remove key",
+                460,
+                235);
+            var body =
+                new StackPanel
+                {
+                    Margin = new Thickness(28)
+                };
+
+            body.Children.Add(
+                new TextBlock
+                {
+                    Text = "Remove key?",
+                    FontSize = 24,
+                    FontWeight =
+                        FontWeights.SemiBold,
+                    Foreground = Brush("#302536"),
+                    Margin =
+                        new Thickness(0, 0, 0, 24)
+                });
+
+            var actions =
+                new StackPanel
+                {
+                    Orientation =
+                        Orientation.Horizontal,
+                    HorizontalAlignment =
+                        HorizontalAlignment.Right
+                };
+
+            var cancel =
+                DialogButton("Cancel", false);
+            cancel.Click += delegate
+            {
+                dialog.Close();
+            };
+            actions.Children.Add(cancel);
+
+            var remove =
+                DialogButton("Remove", true);
+            remove.Margin =
+                new Thickness(10, 0, 0, 0);
+            remove.Click += delegate
+            {
+                try
+                {
+                    GatewayLifecycle.StopOwned(
+                        _baseDir,
+                        _stateRoot);
+                    OpenRouterCredentialStore.Remove(
+                        _stateRoot);
+                    dialog.Close();
+                    RefreshCredentialStatus();
+                    ShowToast(
+                        "Key removed",
+                        "OpenRouter disconnected.");
+                }
+                catch
+                {
+                    ShowToast(
+                        "Could not remove key",
+                        "Close WRN Claude and try again.");
+                }
+            };
+            actions.Children.Add(remove);
+            body.Children.Add(actions);
+
+            dialog.Content =
+                CreateDialogShell(
+                    dialog,
+                    body);
+            dialog.ShowDialog();
+        }
+
+        private static string FriendlyCredentialError(
+            string status)
+        {
+            switch (status)
+            {
+                case "KEY_UNAUTHORIZED":
+                    return "Key not accepted. Check it and try again.";
+                case "INFERENCE_KEY_REQUIRED":
+                    return "Use an OpenRouter API key.";
+                case "KEY_VALIDATION_NETWORK_ERROR":
+                    return "Can't reach OpenRouter. Try again.";
+                case "CREDENTIAL_NOT_CONFIGURED":
+                    return "No key is saved.";
+                default:
+                    return "Could not validate the key. Nothing changed.";
+            }
         }
 
         private void ShowModelDetails(string key)
@@ -1080,7 +1595,11 @@ namespace WRN.AIGateway
 
             _pages[key].Visibility = Visibility.Visible;
             _navButtons[key].Tag = "active";
-            Find<TextBlock>("PageHeading").Text = key == "Home" ? "Home" : key;
+            Find<TextBlock>("PageHeading").Text =
+                key == "Home" ? "Home" : key;
+
+            if (key == "Settings")
+                RefreshCredentialStatus();
         }
 
         private sealed class ModelInfo
