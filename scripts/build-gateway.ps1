@@ -22,6 +22,7 @@ $args = @(
     ("/reference:" + (Join-Path $framework "System.Security.dll")),
     ("/reference:" + (Join-Path $framework "System.Web.Extensions.dll")),
     (Join-Path $sharedSrc "ModelCatalogue.cs"),
+    (Join-Path $sharedSrc "RuntimeFailures.cs"),
     (Join-Path $gatewaySrc "GatewayPolicy.cs"),
     (Join-Path $gatewaySrc "Program.cs")
 )
