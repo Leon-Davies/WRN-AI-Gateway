@@ -23,7 +23,7 @@ internal static class GatewayFailureSanitizerTests
     public static int Main()
     {
         var rawJson =
-            "{"type":"error","error":{"type":"rate_limit_error","message":"openai/gpt-6-luna is temporarily rate-limited upstream. Please retry shortly, or add your own key at https://openrouter.ai/settings/integrations"}}";
+            @"{""type"":""error"",""error"":{""type"":""rate_limit_error"",""message"":""openai/gpt-6-luna is temporarily rate-limited upstream. Please retry shortly, or add your own key at https://openrouter.ai/settings/integrations""}}";
 
         RuntimeFailure jsonFailure;
         Check(
@@ -76,7 +76,7 @@ internal static class GatewayFailureSanitizerTests
                 StringComparison.OrdinalIgnoreCase) >= 0);
 
         var normalJson =
-            "{"type":"message","content":[{"type":"text","text":"hello"}]}";
+            @"{""type"":""message"",""content"":[{""type"":""text"",""text"":""hello""}]}";
         RuntimeFailure normalFailure;
         Check(
             "normal JSON response not treated as error",
@@ -85,7 +85,7 @@ internal static class GatewayFailureSanitizerTests
                 out normalFailure));
 
         var normalSse =
-            "data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"hello"}}";
+            @"data: {""type"":""content_block_delta"",""delta"":{""type"":""text_delta"",""text"":""hello""}}";
         string normalSanitized;
         RuntimeFailure normalSseFailure;
         Check(
