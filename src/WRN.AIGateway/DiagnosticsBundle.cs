@@ -58,7 +58,17 @@ namespace WRN.AIGateway
 
         private static readonly Regex SecretPattern =
             new Regex(
-                @"(?i)(sk-or-[A-Za-z0-9_-]{8,}|bearer\s+[A-Za-z0-9._-]+|api[_ -]?key\s*[:=]\s*\S+)",
+                @"(?i)(sk-or-[A-Za-z0-9_-]{8,}|bearer\s+[A-Za-z0-9._-]+|api[_ -]?key\s*[:=]\s*\S+|client_secret\s*[:=]\s*\S+|password\s*[:=]\s*\S+)",
+                RegexOptions.Compiled);
+
+        private static readonly Regex SensitiveFieldPattern =
+            new Regex(
+                @"(?i)(\"?(?:prompt|content|message|text)\"?\s*[:=]\s*)(\"[^\"]*\"|'[^']*'|[^,}\r\n]+)",
+                RegexOptions.Compiled);
+
+        private static readonly Regex EmailPattern =
+            new Regex(
+                @"(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",
                 RegexOptions.Compiled);
 
         public static DiagnosticsBundleResult Create(
@@ -365,9 +375,35 @@ namespace WRN.AIGateway
             if (string.IsNullOrEmpty(value))
                 return string.Empty;
 
-            return SecretPattern.Replace(
-                value,
-                "[redacted]");
+            var safe =
+                SecretPattern.Replace(
+                    value,
+                    "[redacted]");
+
+            safe =
+                SensitiveFieldPattern.Replace(
+                    safe,
+                    "$1[redacted]");
+
+            safe =
+                EmailPattern.Replace(
+                    safe,
+                    "[redacted-email]");
+
+            var userProfile =
+                Environment.GetFolderPath(
+                    Environment.SpecialFolder.UserProfile);
+
+            if (!string.IsNullOrWhiteSpace(
+                userProfile))
+            {
+                safe =
+                    safe.Replace(
+                        userProfile,
+                        "%USERPROFILE%");
+            }
+
+            return safe;
         }
 
         private static void WriteTextEntry(
