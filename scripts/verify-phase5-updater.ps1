@@ -177,9 +177,10 @@ try {
 
     $controllerSource = Get-Content (Join-Path $src "AppController.cs") -Raw
     foreach ($requiredController in @(
-        "AppUpdateRuntime.CheckRemote",
-        "AppUpdateRuntime.DownloadAndStage",
-        "AppUpdateRuntime.StartActivation",
+        "AppUpdateRuntime",
+        "CheckRemote(",
+        "DownloadAndStage(",
+        "StartActivation(",
         "InstallStagedAppUpdate"
     )) {
         if (-not $controllerSource.Contains($requiredController)) {
