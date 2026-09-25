@@ -86,6 +86,7 @@ $args += (Join-Path $src "ClaudeDiscovery.cs")
 $args += (Join-Path $src "ModelCatalogue.cs")
 $args += (Join-Path $src "ClaudeTransition.cs")
 $args += (Join-Path $src "ModeCoordinator.cs")
+$args += (Join-Path $src "GatewayLifecycle.cs")
 
 & $csc $args
 if ($LASTEXITCODE -ne 0) {
