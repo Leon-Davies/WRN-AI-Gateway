@@ -675,7 +675,7 @@ namespace WRN.AIGateway
             var dialog = CreateDialog(
                 "About OpenRouter",
                 500,
-                330);
+                360);
 
             var body =
                 new StackPanel
@@ -700,8 +700,7 @@ namespace WRN.AIGateway
                 {
                     Text =
                         "• Your key is checked before it is saved.\n\n"
-                        + "• It is protected for your Windows account.\n\n"
-                        + "• It is not shown again after saving.\n\n"
+                        + "• It is protected for your Windows account and is not shown again.\n\n"
                         + "• WRN Claude uses this connection when WRN mode is enabled.",
                     FontSize = 13.5,
                     Foreground = Brush("#5F5664"),
