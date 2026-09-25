@@ -15,8 +15,6 @@ $credentials = Get-Content -LiteralPath $credentialPath -Raw
 foreach ($requiredUi in @(
     "SettingsNavButton",
     "SettingsPage",
-    "CredentialStatusBadge",
-    "CredentialStatusText",
     "CredentialConnectButton",
     "CredentialTestButton",
     "CredentialRemoveButton"
@@ -36,6 +34,20 @@ foreach ($requiredController in @(
 )) {
     if (-not $controller.Contains($requiredController)) {
         throw "Missing Phase 4 controller behavior: $requiredController"
+    }
+}
+
+foreach ($removedCopy in @(
+    "What happens when you connect?",
+    "Protected for your Windows account",
+    "Manage the connection used by WRN Claude on this PC.",
+    "CredentialStatusBadge",
+    "CredentialStatusDetail",
+    "CredentialValidatedText",
+    "CredentialGatewayText"
+)) {
+    if ($xaml.Contains($removedCopy) -or $controller.Contains($removedCopy)) {
+        throw "Settings copy/status bloat reappeared: $removedCopy"
     }
 }
 
@@ -73,7 +85,7 @@ if ($credentials.Contains("Console.WriteLine") -or
     throw "Credential service must not log key-bearing state."
 }
 
-Write-Host "PASS: Settings connection surface present"
+Write-Host "PASS: Settings reduced to connect / test / remove actions"
 Write-Host "PASS: masked native PasswordBox entry"
 Write-Host "PASS: connect / test / remove actions wired"
 Write-Host "PASS: WRN tile routes unconfigured users to Settings"
