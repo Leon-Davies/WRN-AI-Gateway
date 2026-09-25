@@ -65,6 +65,11 @@ namespace WRN.AIGateway
 
             try
             {
+                ServicePointManager.SecurityProtocol =
+                    SecurityProtocolType.Tls12;
+                ServicePointManager.Expect100Continue =
+                    false;
+
                 var request =
                     (HttpWebRequest)WebRequest.Create(
                         "https://openrouter.ai/api/v1/key");
