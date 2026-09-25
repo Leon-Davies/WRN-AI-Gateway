@@ -199,10 +199,6 @@ internal static class AppUpdateTests
                 candidate.ArtifactBytes,
                 publicKey);
 
-        Console.WriteLine(
-            "STAGE_STATUS="
-            + (staged.Status ?? "<null>"));
-
         Check(
             "valid signed update stages",
             staged.Success
@@ -513,37 +509,6 @@ internal static class AppUpdateTests
                     candidate.Signature,
                     candidate.ArtifactBytes,
                     publicKey);
-
-        Console.WriteLine(
-            "BRAND_STAGE_STATUS="
-            + (staged.Status ?? "<null>"));
-
-        if (!string.IsNullOrWhiteSpace(
-            staged.CandidateAppRoot))
-        {
-            var stagedAssets =
-                Path.Combine(
-                    staged.CandidateAppRoot,
-                    "assets");
-
-            if (Directory.Exists(stagedAssets))
-            {
-                Console.WriteLine(
-                    "BRAND_STAGE_FILES="
-                    + string.Join(
-                        ",",
-                        Directory.GetFiles(
-                            stagedAssets,
-                            "wrn-hero*.png",
-                            SearchOption.TopDirectoryOnly)
-                            .Select(
-                                delegate(string path)
-                                {
-                                    return Path.GetFileName(path);
-                                })
-                            .ToArray()));
-            }
-        }
 
         var stagedHero =
             staged.CandidateAppRoot == null
