@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
+using Microsoft.Win32;
 
 namespace WRN.AIGateway
 {
@@ -200,7 +201,7 @@ namespace WRN.AIGateway
                 createdAtUtc =
                     DateTimeOffset.UtcNow.ToString("o"),
                 osVersion =
-                    Environment.OSVersion.VersionString,
+                    ReadOsVersion(),
                 appVersion =
                     identity == null
                         ? "development"
@@ -273,6 +274,82 @@ namespace WRN.AIGateway
                     + "No OpenRouter credential, Claude chat/history, "
                     + "prompt text, file contents, cookies, or Claude databases are collected."
             };
+        }
+
+        private static string ReadOsVersion()
+        {
+            try
+            {
+                using (var key =
+                    Registry.LocalMachine.OpenSubKey(
+                        @"SOFTWARE\Microsoft\Windows NT\CurrentVersion",
+                        false))
+                {
+                    if (key == null)
+                        return Environment.OSVersion.VersionString;
+
+                    var productName =
+                        Convert.ToString(
+                            key.GetValue("ProductName"));
+                    var editionId =
+                        Convert.ToString(
+                            key.GetValue("EditionID"));
+                    var displayVersion =
+                        Convert.ToString(
+                            key.GetValue("DisplayVersion"));
+                    var buildText =
+                        Convert.ToString(
+                            key.GetValue("CurrentBuild"));
+                    var ubr =
+                        Convert.ToString(
+                            key.GetValue("UBR"));
+
+                    int build;
+                    var family =
+                        int.TryParse(
+                            buildText,
+                            out build)
+                        && build >= 22000
+                            ? "Windows 11"
+                            : (string.IsNullOrWhiteSpace(
+                                productName)
+                                ? "Windows"
+                                : productName);
+
+                    var parts =
+                        new[]
+                        {
+                            family,
+                            editionId,
+                            displayVersion,
+                            string.IsNullOrWhiteSpace(buildText)
+                                ? null
+                                : "build "
+                                    + buildText
+                                    + (string.IsNullOrWhiteSpace(
+                                        ubr)
+                                        ? string.Empty
+                                        : "." + ubr)
+                        }
+                        .Where(
+                            delegate(string value)
+                            {
+                                return !string.IsNullOrWhiteSpace(
+                                    value);
+                            })
+                        .ToArray();
+
+                    return string.Join(
+                        " ",
+                        parts);
+                }
+            }
+            catch
+            {
+                return Environment
+                    .OSVersion
+                    .VersionString;
+            }
         }
 
         private static bool HasStagedUpdate(
