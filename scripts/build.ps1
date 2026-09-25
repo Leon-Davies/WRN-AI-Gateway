@@ -54,6 +54,9 @@ $references = @(
     (Join-Path $framework "System.DirectoryServices.dll"),
     (Join-Path $framework "System.DirectoryServices.AccountManagement.dll"),
     (Join-Path $framework "System.Web.Extensions.dll"),
+    (Join-Path $framework "System.Xml.dll"),
+    (Join-Path $framework "System.IO.Compression.dll"),
+    (Join-Path $framework "System.IO.Compression.FileSystem.dll"),
     (Join-Path $wpf "WindowsBase.dll"),
     (Join-Path $wpf "PresentationCore.dll"),
     (Join-Path $wpf "PresentationFramework.dll")
@@ -89,6 +92,7 @@ $args += (Join-Path $src "ModeCoordinator.cs")
 $args += (Join-Path $src "GatewayLifecycle.cs")
 $args += (Join-Path $src "OpenRouterCredentials.cs")
 $args += (Join-Path $src "RuntimeFailures.cs")
+$args += (Join-Path $src "AppUpdate.cs")
 
 & $csc $args
 if ($LASTEXITCODE -ne 0) {
@@ -96,6 +100,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 & (Join-Path $PSScriptRoot "build-gateway.ps1") | Out-Null
+& (Join-Path $PSScriptRoot "build-updater.ps1") | Out-Null
 
 Write-Host ""
 Write-Host "Build complete:" -ForegroundColor Green
