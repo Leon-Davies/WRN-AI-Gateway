@@ -69,6 +69,12 @@ internal static class ClaudeTransitionTests
         TestStalePreflight(baseRoot, catalogue);
         TestUnsafeSourceBlocked(baseRoot, catalogue);
         TestProfileCollisionBlocked(baseRoot, catalogue);
+        TestRoundTripPreservesChanges(baseRoot, catalogue);
+        TestInterruptedActivationRecovery(baseRoot, catalogue);
+        TestCompletedActivationRecovery(baseRoot, catalogue);
+        TestInterruptedDeactivationRecovery(baseRoot, catalogue);
+        TestRecoveryConflictFailsClosed(baseRoot, catalogue);
+        TestDeactivationOwnershipGuard(baseRoot, catalogue);
         TestLivePathGuard(baseRoot);
 
         Console.WriteLine(
@@ -88,6 +94,18 @@ internal static class ClaudeTransitionTests
             ClaudeRunning = false,
             ConfigReadable = true,
             Mode = ClaudeMode.Wtw
+        };
+    }
+
+    private static ClaudeDiscoverySnapshot HealthyWrn()
+    {
+        return new ClaudeDiscoverySnapshot
+        {
+            ReadOnly = true,
+            InstallKind = ClaudeInstallKind.ManagedPackage,
+            ClaudeRunning = false,
+            ConfigReadable = true,
+            Mode = ClaudeMode.Wrn
         };
     }
 
@@ -450,6 +468,432 @@ internal static class ClaudeTransitionTests
         }
 
         Check("pre-existing WRN profile collision blocked", blocked);
+    }
+
+    private static void TestRoundTripPreservesChanges(
+        string baseRoot,
+        CatalogueDocument catalogue)
+    {
+        var fixture = CreateFixture(baseRoot, "roundtrip", false);
+        var stateRoot = Path.Combine(fixture.Root, "transactions");
+
+        var activation = ClaudeActivationCompiler.Compile(
+            HealthyWtw(),
+            fixture.Paths,
+            catalogue,
+            "roundtrip-token",
+            43127);
+
+        var activated = ClaudeTransitionExecutor.Execute(
+            activation,
+            stateRoot);
+        Check("roundtrip activation succeeds", activated.Success);
+        Check(
+            "activation ownership baseline persisted",
+            File.Exists(
+                ClaudeTransitionState.OwnershipBaselinePath(
+                    stateRoot)));
+
+        var desktop = ParseObject(
+            File.ReadAllBytes(fixture.Paths.DesktopConfigPath));
+        var preferences =
+            desktop["preferences"] as Dictionary<string, object>;
+        preferences["fixturePreference"] = "changed-during-wrn";
+        preferences["newDuringWrn"] = "keep-this";
+        WriteJson(fixture.Paths.DesktopConfigPath, desktop);
+
+        var meta = ParseObject(
+            File.ReadAllBytes(fixture.Paths.MetaPath));
+        meta["runtimeMeta"] = "changed-during-wrn";
+        var entries = ReadObjectArray(meta["entries"]).ToList();
+        entries.Add(
+            new Dictionary<string, object>
+            {
+                { "id", "added-during-wrn" },
+                { "name", "Added during WRN" }
+            });
+        meta["entries"] = entries.ToArray();
+        WriteJson(fixture.Paths.MetaPath, meta);
+
+        var deactivation = ClaudeDeactivationCompiler.Compile(
+            HealthyWrn(),
+            fixture.Paths,
+            stateRoot);
+
+        Check(
+            "WTW restore deactivates deployment mode first",
+            string.Equals(
+                deactivation.Mutations[0].Path,
+                fixture.Paths.DesktopConfigPath,
+                StringComparison.OrdinalIgnoreCase));
+        Check(
+            "WTW restore updates metadata second",
+            string.Equals(
+                deactivation.Mutations[1].Path,
+                fixture.Paths.MetaPath,
+                StringComparison.OrdinalIgnoreCase));
+        Check(
+            "WTW restore removes WRN profile last",
+            string.Equals(
+                deactivation.Mutations[2].Path,
+                fixture.Paths.WrnProfilePath,
+                StringComparison.OrdinalIgnoreCase)
+            && !deactivation.Mutations[2].DesiredExists);
+
+        var restored = ClaudeTransitionExecutor.Execute(
+            deactivation,
+            stateRoot);
+        Check("roundtrip WTW restoration succeeds", restored.Success);
+
+        desktop = ParseObject(
+            File.ReadAllBytes(fixture.Paths.DesktopConfigPath));
+        Check(
+            "deploymentMode absence restored field-by-field",
+            !desktop.ContainsKey("deploymentMode"));
+
+        preferences =
+            desktop["preferences"] as Dictionary<string, object>;
+        Check(
+            "preference changed during WRN preserved",
+            Convert.ToString(preferences["fixturePreference"])
+                == "changed-during-wrn");
+        Check(
+            "new preference created during WRN preserved",
+            Convert.ToString(preferences["newDuringWrn"])
+                == "keep-this");
+
+        meta = ParseObject(
+            File.ReadAllBytes(fixture.Paths.MetaPath));
+        Check(
+            "pre-WRN appliedId restored",
+            Convert.ToString(meta["appliedId"])
+                == "existing-profile");
+        Check(
+            "metadata changed during WRN preserved",
+            Convert.ToString(meta["runtimeMeta"])
+                == "changed-during-wrn");
+
+        entries = ReadObjectArray(meta["entries"]).ToList();
+        Check(
+            "original non-WRN profile preserved",
+            entries.OfType<Dictionary<string, object>>().Any(
+                delegate(Dictionary<string, object> entry)
+                {
+                    return Convert.ToString(entry["id"])
+                        == "existing-profile";
+                }));
+        Check(
+            "profile added during WRN preserved",
+            entries.OfType<Dictionary<string, object>>().Any(
+                delegate(Dictionary<string, object> entry)
+                {
+                    return Convert.ToString(entry["id"])
+                        == "added-during-wrn";
+                }));
+        Check(
+            "only WRN metadata entry removed",
+            !entries.OfType<Dictionary<string, object>>().Any(
+                delegate(Dictionary<string, object> entry)
+                {
+                    return Convert.ToString(entry["id"])
+                        == ClaudePaths.WrnProfileId;
+                }));
+        Check(
+            "WRN-owned profile removed",
+            !File.Exists(fixture.Paths.WrnProfilePath));
+        Check(
+            "ownership baseline removed after WTW restoration",
+            !File.Exists(
+                ClaudeTransitionState.OwnershipBaselinePath(
+                    stateRoot)));
+    }
+
+    private static void TestInterruptedActivationRecovery(
+        string baseRoot,
+        CatalogueDocument catalogue)
+    {
+        var fixture = CreateFixture(
+            baseRoot,
+            "activation-crash-partial",
+            false);
+        var stateRoot =
+            Path.Combine(fixture.Root, "transactions");
+
+        var plan = ClaudeActivationCompiler.Compile(
+            HealthyWtw(),
+            fixture.Paths,
+            catalogue,
+            "crash-token",
+            43127);
+
+        var interrupted =
+            ClaudeTransitionExecutor.ExecuteInterruptedForTest(
+                plan,
+                stateRoot,
+                2);
+
+        Check(
+            "partial activation interruption retained pending journal",
+            interrupted.Status == "TRANSITION_INTERRUPTED_FOR_TEST"
+            && Directory.Exists(
+                ClaudeTransitionState.PendingTransactionPath(
+                    stateRoot)));
+
+        var recovery =
+            ClaudeTransitionExecutor.RecoverPending(
+                stateRoot);
+        Check(
+            "partial activation recovery rolls back",
+            recovery.RolledBack
+            && recovery.Status
+                == "TRANSITION_RECOVERY_ROLLED_BACK");
+        Check(
+            "crash recovery restores desktop bytes",
+            fixture.DesktopBefore.SequenceEqual(
+                File.ReadAllBytes(
+                    fixture.Paths.DesktopConfigPath)));
+        Check(
+            "crash recovery restores meta bytes",
+            fixture.MetaBefore.SequenceEqual(
+                File.ReadAllBytes(
+                    fixture.Paths.MetaPath)));
+        Check(
+            "crash recovery removes new WRN profile",
+            !File.Exists(fixture.Paths.WrnProfilePath));
+        Check(
+            "crash recovery removes activation baseline",
+            !File.Exists(
+                ClaudeTransitionState.OwnershipBaselinePath(
+                    stateRoot)));
+        Check(
+            "crash recovery clears pending transaction",
+            !Directory.Exists(
+                ClaudeTransitionState.PendingTransactionPath(
+                    stateRoot)));
+    }
+
+    private static void TestCompletedActivationRecovery(
+        string baseRoot,
+        CatalogueDocument catalogue)
+    {
+        var fixture = CreateFixture(
+            baseRoot,
+            "activation-crash-complete",
+            false);
+        var stateRoot =
+            Path.Combine(fixture.Root, "transactions");
+
+        var plan = ClaudeActivationCompiler.Compile(
+            HealthyWtw(),
+            fixture.Paths,
+            catalogue,
+            "complete-crash-token",
+            43127);
+
+        var interrupted =
+            ClaudeTransitionExecutor.ExecuteInterruptedForTest(
+                plan,
+                stateRoot,
+                3);
+        Check(
+            "complete activation can be interrupted before journal cleanup",
+            interrupted.Status == "TRANSITION_INTERRUPTED_FOR_TEST");
+
+        var recovery =
+            ClaudeTransitionExecutor.RecoverPending(
+                stateRoot);
+        Check(
+            "fully-applied activation recovery finalizes",
+            recovery.Success
+            && !recovery.RolledBack
+            && recovery.Status
+                == "TRANSITION_RECOVERY_FINALIZED");
+
+        var desktop = ParseObject(
+            File.ReadAllBytes(fixture.Paths.DesktopConfigPath));
+        Check(
+            "finalized recovery leaves WRN deployment active",
+            Convert.ToString(desktop["deploymentMode"])
+                == "3p");
+        Check(
+            "finalized recovery retains ownership baseline",
+            File.Exists(
+                ClaudeTransitionState.OwnershipBaselinePath(
+                    stateRoot)));
+    }
+
+    private static void TestInterruptedDeactivationRecovery(
+        string baseRoot,
+        CatalogueDocument catalogue)
+    {
+        var fixture = CreateFixture(
+            baseRoot,
+            "deactivation-crash",
+            false);
+        var stateRoot =
+            Path.Combine(fixture.Root, "transactions");
+
+        var activation = ClaudeActivationCompiler.Compile(
+            HealthyWtw(),
+            fixture.Paths,
+            catalogue,
+            "deactivation-crash-token",
+            43127);
+        Check(
+            "deactivation crash fixture activates first",
+            ClaudeTransitionExecutor.Execute(
+                activation,
+                stateRoot).Success);
+
+        var deactivation = ClaudeDeactivationCompiler.Compile(
+            HealthyWrn(),
+            fixture.Paths,
+            stateRoot);
+
+        var interrupted =
+            ClaudeTransitionExecutor.ExecuteInterruptedForTest(
+                deactivation,
+                stateRoot,
+                2);
+        Check(
+            "partial WTW restore interruption retained pending journal",
+            interrupted.Status == "TRANSITION_INTERRUPTED_FOR_TEST");
+
+        var recovery =
+            ClaudeTransitionExecutor.RecoverPending(
+                stateRoot);
+        Check(
+            "partial WTW restore recovers back to WRN",
+            recovery.RolledBack);
+
+        var desktop = ParseObject(
+            File.ReadAllBytes(fixture.Paths.DesktopConfigPath));
+        var meta = ParseObject(
+            File.ReadAllBytes(fixture.Paths.MetaPath));
+        Check(
+            "reverse crash recovery reactivates deploymentMode",
+            Convert.ToString(desktop["deploymentMode"])
+                == "3p");
+        Check(
+            "reverse crash recovery reselects WRN profile",
+            Convert.ToString(meta["appliedId"])
+                == ClaudePaths.WrnProfileId);
+        Check(
+            "reverse crash recovery restores WRN profile",
+            File.Exists(fixture.Paths.WrnProfilePath));
+        Check(
+            "reverse crash recovery retains ownership baseline",
+            File.Exists(
+                ClaudeTransitionState.OwnershipBaselinePath(
+                    stateRoot)));
+
+        var retry = ClaudeDeactivationCompiler.Compile(
+            HealthyWrn(),
+            fixture.Paths,
+            stateRoot);
+        Check(
+            "WTW restore can retry after recovery",
+            ClaudeTransitionExecutor.Execute(
+                retry,
+                stateRoot).Success);
+    }
+
+    private static void TestRecoveryConflictFailsClosed(
+        string baseRoot,
+        CatalogueDocument catalogue)
+    {
+        var fixture = CreateFixture(
+            baseRoot,
+            "recovery-conflict",
+            false);
+        var stateRoot =
+            Path.Combine(fixture.Root, "transactions");
+
+        var plan = ClaudeActivationCompiler.Compile(
+            HealthyWtw(),
+            fixture.Paths,
+            catalogue,
+            "conflict-token",
+            43127);
+
+        ClaudeTransitionExecutor.ExecuteInterruptedForTest(
+            plan,
+            stateRoot,
+            1);
+
+        var meta = ParseObject(
+            File.ReadAllBytes(fixture.Paths.MetaPath));
+        meta["unexpectedExternalChange"] = true;
+        WriteJson(fixture.Paths.MetaPath, meta);
+        var conflictBytes =
+            File.ReadAllBytes(fixture.Paths.MetaPath);
+
+        var blocked = false;
+        try
+        {
+            ClaudeTransitionExecutor.RecoverPending(
+                stateRoot);
+        }
+        catch (IOException ex)
+        {
+            blocked = ex.Message
+                == "TRANSITION_RECOVERY_CONFLICT";
+        }
+
+        Check(
+            "unexpected crash-recovery state fails closed",
+            blocked);
+        Check(
+            "recovery conflict does not overwrite unexpected file",
+            conflictBytes.SequenceEqual(
+                File.ReadAllBytes(
+                    fixture.Paths.MetaPath)));
+    }
+
+    private static void TestDeactivationOwnershipGuard(
+        string baseRoot,
+        CatalogueDocument catalogue)
+    {
+        var fixture = CreateFixture(
+            baseRoot,
+            "ownership-guard",
+            false);
+        var stateRoot =
+            Path.Combine(fixture.Root, "transactions");
+
+        var activation = ClaudeActivationCompiler.Compile(
+            HealthyWtw(),
+            fixture.Paths,
+            catalogue,
+            "ownership-token",
+            43127);
+        Check(
+            "ownership guard fixture activates",
+            ClaudeTransitionExecutor.Execute(
+                activation,
+                stateRoot).Success);
+
+        File.AppendAllText(
+            fixture.Paths.WrnProfilePath,
+            Environment.NewLine + " ");
+
+        var blocked = false;
+        try
+        {
+            ClaudeDeactivationCompiler.Compile(
+                HealthyWrn(),
+                fixture.Paths,
+                stateRoot);
+        }
+        catch (InvalidOperationException ex)
+        {
+            blocked = ex.Message
+                == "WRN_PROFILE_CHANGED_SINCE_ACTIVATION";
+        }
+
+        Check(
+            "changed WRN-owned profile blocks WTW restoration",
+            blocked);
     }
 
     private static void TestLivePathGuard(string baseRoot)
