@@ -884,4 +884,109 @@ namespace WRN.AIGateway
             };
         }
     }
+    internal sealed class AppSelfCheckReport
+    {
+        public bool ok { get; set; }
+        public string error { get; set; }
+        public int release { get; set; }
+        public string version { get; set; }
+    }
+
+    internal static class AppUpdateCommand
+    {
+        public static bool TryRun(
+            string[] args,
+            string baseDir)
+        {
+            if (args == null
+                || args.Length == 0)
+                return false;
+
+            var selfCheck = false;
+            string reportPath = null;
+
+            for (var i = 0;
+                i < args.Length;
+                i++)
+            {
+                if (string.Equals(
+                    args[i],
+                    "--self-check",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    selfCheck = true;
+                }
+                else if (string.Equals(
+                    args[i],
+                    "--self-check-report",
+                    StringComparison.OrdinalIgnoreCase)
+                    && i + 1 < args.Length)
+                {
+                    reportPath =
+                        args[++i];
+                }
+            }
+
+            if (!selfCheck)
+                return false;
+
+            string error;
+            var ok =
+                AppSelfCheck.ValidateDirectory(
+                    baseDir,
+                    out error);
+
+            AppReleaseIdentity identity;
+            string identityError;
+            AppReleaseIdentityStore.TryRead(
+                baseDir,
+                out identity,
+                out identityError);
+
+            if (!string.IsNullOrWhiteSpace(
+                reportPath))
+            {
+                var serializer =
+                    new JavaScriptSerializer();
+                var report =
+                    new AppSelfCheckReport
+                    {
+                        ok = ok,
+                        error = error,
+                        release =
+                            identity == null
+                                ? 0
+                                : identity.release,
+                        version =
+                            identity == null
+                                ? null
+                                : identity.version
+                    };
+
+                var full =
+                    Path.GetFullPath(
+                        reportPath);
+                var parent =
+                    Path.GetDirectoryName(
+                        full);
+                if (!string.IsNullOrWhiteSpace(
+                    parent))
+                {
+                    Directory.CreateDirectory(
+                        parent);
+                }
+
+                File.WriteAllText(
+                    full,
+                    serializer.Serialize(
+                        report),
+                    new UTF8Encoding(false));
+            }
+
+            Environment.ExitCode =
+                ok ? 0 : 1;
+            return true;
+        }
+    }
+
 }
