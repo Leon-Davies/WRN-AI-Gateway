@@ -352,6 +352,8 @@ namespace WRN.AIGateway.Gateway
                 + rewrite.UpstreamModel);
 
             HttpResponseMessage response = null;
+            RuntimeFailure transportFailure = null;
+
             try
             {
                 using (var outbound =
@@ -367,34 +369,27 @@ namespace WRN.AIGateway.Gateway
             }
             catch (TaskCanceledException)
             {
-                stopwatch.Stop();
-                var failure =
+                transportFailure =
                     RuntimeFailureCatalog.TransportFailure();
-                Log(
-                    "upstream_failure code="
-                    + failure.Code
-                    + " latency_ms="
-                    + stopwatch.ElapsedMilliseconds);
-
-                await WriteAnthropicFailure(
-                    stream,
-                    failure).ConfigureAwait(false);
-                return;
             }
             catch (HttpRequestException)
             {
-                stopwatch.Stop();
-                var failure =
+                transportFailure =
                     RuntimeFailureCatalog.TransportFailure();
+            }
+
+            if (transportFailure != null)
+            {
+                stopwatch.Stop();
                 Log(
                     "upstream_failure code="
-                    + failure.Code
+                    + transportFailure.Code
                     + " latency_ms="
                     + stopwatch.ElapsedMilliseconds);
 
                 await WriteAnthropicFailure(
                     stream,
-                    failure).ConfigureAwait(false);
+                    transportFailure).ConfigureAwait(false);
                 return;
             }
 
