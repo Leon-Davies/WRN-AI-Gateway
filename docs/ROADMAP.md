@@ -63,6 +63,8 @@ Exit: the read-only discovery and dry-run safety layer is implemented and qualif
 
 ## Phase 2B — Signed dynamic model catalogue runtime
 
+**Status: implementation candidate complete; remote propagation and fail-closed behaviour proved, owner review pending.**
+
 Goal: make the model service remotely maintainable before live switching is enabled.
 
 Deliverables:

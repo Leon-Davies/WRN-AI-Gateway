@@ -3,8 +3,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.DirectoryServices.AccountManagement;
 using System.IO;
+using System.Globalization;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -24,8 +29,11 @@ namespace WRN.AIGateway
         private readonly DispatcherTimer _toastTimer = new DispatcherTimer();
         private readonly DispatcherTimer _typingTimer = new DispatcherTimer();
         private readonly DispatcherTimer _heroTimer = new DispatcherTimer();
+        private readonly DispatcherTimer _catalogueTimer = new DispatcherTimer();
+        private CatalogueLoadResult _catalogueLoad;
+        private bool _catalogueRefreshInFlight;
         private readonly List<BitmapImage> _heroImages = new List<BitmapImage>();
-        private readonly Dictionary<string, ModelInfo> _models = CreateModelInfo();
+        private readonly Dictionary<string, ModelInfo> _models = new Dictionary<string, ModelInfo>(StringComparer.OrdinalIgnoreCase);
         private string _greetingTarget = string.Empty;
         private int _greetingIndex;
         private int _heroIndex;
@@ -44,6 +52,7 @@ namespace WRN.AIGateway
 
         public void Initialize()
         {
+            LoadCatalogue();
             ConfigureWindowChrome();
             WireWindowControls();
             WireNavigation();
@@ -51,7 +60,9 @@ namespace WRN.AIGateway
             ApplyPersonalisation();
             TryLoadBrandHero();
             ConfigureToast();
+            RenderCatalogue();
             ShowPage("Home");
+            ConfigureCatalogueRefresh();
         }
 
         private void ConfigureWindowChrome()
@@ -118,12 +129,6 @@ namespace WRN.AIGateway
             Find<Button>("ModelsShortcutButton").Click += delegate { ShowPage("Models"); };
             Find<Button>("UpdatesShortcutButton").Click += delegate { ShowPage("Updates"); };
 
-            Find<Button>("ModelDeepSeekButton").Click += delegate { ShowModelDetails("deepseek"); };
-            Find<Button>("ModelSonnetButton").Click += delegate { ShowModelDetails("sonnet"); };
-            Find<Button>("ModelAstraButton").Click += delegate { ShowModelDetails("astra"); };
-            Find<Button>("ModelSolButton").Click += delegate { ShowModelDetails("sol"); };
-            Find<Button>("ModelLunaButton").Click += delegate { ShowModelDetails("luna"); };
-            Find<Button>("ModelGlmButton").Click += delegate { ShowModelDetails("glm"); };
 
             Find<Button>("ModelRequestButton").Click += delegate
             {
@@ -339,9 +344,9 @@ namespace WRN.AIGateway
             metrics.ColumnDefinitions.Add(new ColumnDefinition());
             metrics.ColumnDefinitions.Add(new ColumnDefinition());
             metrics.ColumnDefinitions.Add(new ColumnDefinition());
-            metrics.Children.Add(MetricCard("AA intelligence", model.Rank + "  ·  " + model.Index, 0));
-            metrics.Children.Add(MetricCard("Est. short message*", model.ShortMessage, 1));
-            metrics.Children.Add(MetricCard("AA benchmark task", model.TaskCost, 2));
+            metrics.Children.Add(MetricCard("AA Intelligence", model.Index, 0));
+            metrics.Children.Add(MetricCard("AA rank ↓", model.Rank, 1));
+            metrics.Children.Add(MetricCard("Est. short message*", model.ShortMessage, 2));
             body.Children.Add(metrics);
 
             body.Children.Add(SectionTitle("What it is"));
@@ -355,7 +360,7 @@ namespace WRN.AIGateway
 
             var caveat = new TextBlock
             {
-                Text = "*Short-message estimate assumes 2,000 input + 1,000 output tokens at the API rates shown by Artificial Analysis. Cowork can send substantially more context and may make multiple model/tool calls. AA rank is within the model page's current comparison class, so ranks are not a universal cross-model league table.",
+                Text = "*Short-message estimate assumes 2,000 input + 1,000 output tokens at the listed API rates. Artificial Analysis Intelligence Index: higher is better. AA rank: lower is better within that model page's comparison class; ranks from different classes are not directly comparable.",
                 FontSize = 13,
                 Foreground = Brush("#8A818E"),
                 TextWrapping = TextWrapping.Wrap,
@@ -724,95 +729,265 @@ namespace WRN.AIGateway
             return (SolidColorBrush)new BrushConverter().ConvertFromString(value);
         }
 
-        private static Dictionary<string, ModelInfo> CreateModelInfo()
+        private void LoadCatalogue()
         {
-            return new Dictionary<string, ModelInfo>
+            try
             {
+                _catalogueLoad = new CatalogueStore(_baseDir).LoadBestAvailable();
+                RebuildModelInfo();
+            }
+            catch
+            {
+                _catalogueLoad = null;
+                _models.Clear();
+            }
+        }
+
+        private void RebuildModelInfo()
+        {
+            _models.Clear();
+            if (_catalogueLoad == null || _catalogueLoad.Catalogue == null || _catalogueLoad.Catalogue.models == null)
+                return;
+
+            foreach (var item in _catalogueLoad.Catalogue.models.Where(delegate(CatalogueModel m) { return m.visible; }))
+            {
+                var costContext = string.Format(
+                    CultureInfo.InvariantCulture,
+                    "Artificial Analysis snapshot {0}: input USD {1:0.00}/M, output USD {2:0.00}/M; benchmark task cost USD {3:0.00}. AA effort: {4}. WRN default effort: {5}. {6}",
+                    _catalogueLoad.Catalogue.benchmarkSnapshot,
+                    item.inputUsdPerMillion,
+                    item.outputUsdPerMillion,
+                    item.aaTaskCostUsd,
+                    item.aaEffort,
+                    item.defaultEffort,
+                    item.limitations);
+
+                _models[item.key] = new ModelInfo(
+                    item.label,
+                    item.maker,
+                    "#" + item.aaRank + " / " + item.aaClassSize + " ↓",
+                    "Index " + item.aaIndex,
+                    FormatUsd(item.shortMessageUsd),
+                    FormatUsd(item.aaTaskCostUsd),
+                    item.description,
+                    item.goodFor,
+                    costContext,
+                    item.aaUrl);
+            }
+        }
+
+        private void RenderCatalogue()
+        {
+            var grid = Find<UniformGrid>("ModelsGrid");
+            grid.Children.Clear();
+
+            if (_catalogueLoad == null || _catalogueLoad.Catalogue == null)
+            {
+                Find<TextBlock>("ModelsFootnote").Text =
+                    "The signed WRN model catalogue could not be loaded. The existing Claude installation is unaffected.";
+                return;
+            }
+
+            var visible = _catalogueLoad.Catalogue.models
+                .Where(delegate(CatalogueModel m) { return m.visible; })
+                .ToArray();
+
+            for (var i = 0; i < visible.Length; i++)
+                grid.Children.Add(CreateModelCatalogueButton(visible[i], i));
+
+            Find<TextBlock>("ModelsFootnote").Text =
+                "*Artificial Analysis snapshot: " + _catalogueLoad.Catalogue.benchmarkSnapshot +
+                ". Intelligence Index: higher is better. AA rank: lower is better within each model page's comparison class; " +
+                "ranks across different classes are not directly comparable. Short-message estimate uses 2k input + 1k output tokens. " +
+                "Signed catalogue release " + _catalogueLoad.Catalogue.release + ".";
+
+            var defaultEntry = visible.FirstOrDefault(delegate(CatalogueModel m)
+            {
+                return string.Equals(m.key, _catalogueLoad.Catalogue.defaultModelKey, StringComparison.OrdinalIgnoreCase);
+            });
+            if (defaultEntry != null)
+            {
+                Find<Border>("SpotlightBadge").Background = Brush(defaultEntry.accent);
+                Find<TextBlock>("SpotlightInitial").Text = defaultEntry.initial;
+                Find<TextBlock>("SpotlightName").Text = defaultEntry.label;
+                Find<TextBlock>("SpotlightTagline").Text = defaultEntry.tagline;
+            }
+
+            var latest = _catalogueLoad.Catalogue.changelog == null
+                ? null
+                : _catalogueLoad.Catalogue.changelog.FirstOrDefault();
+            if (latest != null)
+            {
+                DateTime parsed;
+                if (DateTime.TryParse(latest.date, out parsed))
                 {
-                    "deepseek",
-                    new ModelInfo(
-                        "DeepSeek V4.1 Flash",
-                        "DeepSeek",
-                        "#7 / 115",
-                        "Index 39",
-                        "$0.0018",
-                        "$0.27",
-                        "An open-weight model designed to deliver strong reasoning at very high output speed and low token prices. Artificial Analysis measures it as one of the stronger models in its open-weight comparison class.",
-                        "Good for high-volume everyday Cowork work, quick research, drafting, iterative analysis and tasks where speed and cost matter. For the hardest reasoning or highest-value synthesis, GPT-6 Astra may justify its much higher cost.",
-                        "Artificial Analysis lists $0.30 / $1.20 per million input/output tokens and about 233 output tokens per second at max reasoning. The model is very fast but can be verbose.",
-                        "https://artificialanalysis.ai/models/deepseek-v4-1-flash")
-                },
-                {
-                    "sonnet",
-                    new ModelInfo(
-                        "Claude Sonnet 5",
-                        "Anthropic",
-                        "#54 / 211",
-                        "Index 38",
-                        "$0.014",
-                        "$5.09",
-                        "Anthropic's general-purpose Claude model in the current WRN list. It combines solid intelligence with good output speed and the familiar Claude style.",
-                        "Good for writing, document work, summarisation and tool-heavy workflows where you want a balanced model rather than maximum reasoning. Its max-effort benchmark is unusually verbose, which raises cost on long agentic tasks.",
-                        "Artificial Analysis currently lists $2 / $10 per million input/output tokens, around 82 output tokens per second, and a $5.09 Intelligence Index task cost at max effort.",
-                        "https://artificialanalysis.ai/models/claude-sonnet-5")
-                },
-                {
-                    "astra",
-                    new ModelInfo(
-                        "GPT-6 Astra",
-                        "OpenAI",
-                        "#6 / 211",
-                        "Index 53",
-                        "$0.070",
-                        "$3.26",
-                        "A frontier reasoning model and the highest-intelligence OpenAI option currently exposed in WRN Claude. It trades speed and price for stronger performance on difficult tasks.",
-                        "Use for the hardest analysis, complex multi-step reasoning, important synthesis and work where getting the best answer matters more than latency or cost. It is usually excessive for routine drafting or simple queries.",
-                        "Artificial Analysis lists $10 / $50 per million input/output tokens, an Intelligence Index of 53, and roughly 54 output tokens per second. It is one of the most expensive choices in the current WRN list.",
-                        "https://artificialanalysis.ai/models/gpt-6-astra")
-                },
-                {
-                    "sol",
-                    new ModelInfo(
-                        "GPT-5.6 Sol",
-                        "OpenAI",
-                        "#19 / 211",
-                        "Index 47",
-                        "$0.028",
-                        "$1.99",
-                        "A strong professional reasoning model that remains capable for research, structured analysis and polished knowledge work. It is less expensive than GPT-6 Astra while retaining substantially more capability than lightweight options.",
-                        "Good for complex professional work when Astra is unnecessary, including detailed analysis, technical writing and difficult document tasks. Artificial Analysis now flags GPT-5.6 Sol as superseded by GPT-6 Sol, but it remains in the current WRN Claude catalogue.",
-                        "Artificial Analysis lists $4 / $20 per million input/output tokens, an Intelligence Index of 47, and roughly 73 output tokens per second at max effort.",
-                        "https://artificialanalysis.ai/models/gpt-5-6-sol")
-                },
-                {
-                    "luna",
-                    new ModelInfo(
-                        "GPT-5.6 Luna",
-                        "OpenAI",
-                        "#5 / 174",
-                        "Index 37",
-                        "$0.0016",
-                        "$0.18",
-                        "A lightweight OpenAI reasoning model designed for cost-sensitive workloads. It is much cheaper and faster than the larger OpenAI options while still scoring well within its price class.",
-                        "Good for routine summarisation, drafting, extraction, quick analysis and high-volume tasks. Artificial Analysis now flags GPT-5.6 Luna as superseded by GPT-6 Luna, but it remains in the current WRN Claude catalogue.",
-                        "Artificial Analysis lists $0.20 / $1.20 per million input/output tokens, an Intelligence Index of 37, and roughly 126 output tokens per second at max effort.",
-                        "https://artificialanalysis.ai/models/gpt-5-6-luna")
-                },
-                {
-                    "glm",
-                    new ModelInfo(
-                        "GLM 5.3 Flash",
-                        "Z AI",
-                        "#4 / 115",
-                        "Index 42",
-                        "$0.0008",
-                        "$0.25",
-                        "A very low-cost open-weight reasoning model with strong benchmark intelligence for its class. Its main trade-off is slower output and relatively high verbosity.",
-                        "Good for inexpensive reasoning, structured analysis and workloads where response time is less important. DeepSeek is usually the better low-cost choice when speed matters.",
-                        "Artificial Analysis lists $0.15 / $0.50 per million input/output tokens, an Intelligence Index of 42, and roughly 43 output tokens per second.",
-                        "https://artificialanalysis.ai/models/glm-5-3-flash")
+                    Find<TextBlock>("CatalogueUpdateDate").Text = parsed.ToString("dd MMM", CultureInfo.InvariantCulture);
+                    Find<TextBlock>("CatalogueUpdateYear").Text = parsed.ToString("yyyy", CultureInfo.InvariantCulture);
                 }
+                Find<TextBlock>("CatalogueUpdateTitle").Text = latest.title;
+                Find<TextBlock>("CatalogueUpdateBody").Text = latest.body;
+            }
+        }
+
+        private Button CreateModelCatalogueButton(CatalogueModel entry, int index)
+        {
+            ModelInfo model;
+            if (!_models.TryGetValue(entry.key, out model))
+                throw new InvalidOperationException("Catalogue model metadata missing: " + entry.key);
+
+            var button = new Button
+            {
+                Style = (Style)_window.FindResource("ActionCardButtonStyle"),
+                Margin = index % 2 == 0 ? new Thickness(0, 0, 8, 12) : new Thickness(8, 0, 0, 12),
+                Padding = new Thickness(19),
+                Tag = entry.key
             };
+            AutomationProperties.SetName(button, "About " + model.Name);
+            var key = entry.key;
+            button.Click += delegate { ShowModelDetails(key); };
+
+            var stack = new StackPanel();
+            var header = new Grid();
+            header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            header.ColumnDefinitions.Add(new ColumnDefinition());
+
+            var badge = new Border
+            {
+                Width = 42,
+                Height = 42,
+                CornerRadius = new CornerRadius(11),
+                Background = Brush(entry.accent)
+            };
+            badge.Child = new TextBlock
+            {
+                Text = entry.initial,
+                Foreground = Brushes.White,
+                FontWeight = FontWeights.Bold,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            header.Children.Add(badge);
+
+            var title = new StackPanel
+            {
+                Margin = new Thickness(13, 0, 10, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            title.Children.Add(new TextBlock
+            {
+                Text = model.Name,
+                FontSize = 17,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = Brush("#302536")
+            });
+            title.Children.Add(new TextBlock
+            {
+                Text = entry.tagline,
+                FontSize = 12,
+                Foreground = Brush("#817787"),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 3, 0, 0)
+            });
+            Grid.SetColumn(title, 1);
+            header.Children.Add(title);
+            stack.Children.Add(header);
+
+            var metrics = new Grid { Margin = new Thickness(0, 16, 0, 0) };
+            metrics.ColumnDefinitions.Add(new ColumnDefinition());
+            metrics.ColumnDefinitions.Add(new ColumnDefinition());
+
+            var aa = new StackPanel();
+            aa.Children.Add(new TextBlock
+            {
+                Text = "AA Intelligence",
+                Foreground = Brush("#9A909F"),
+                FontSize = 12
+            });
+            aa.Children.Add(new TextBlock
+            {
+                Text = model.Index + "  ·  " + model.Rank,
+                Foreground = Brush("#3B3340"),
+                FontSize = 12,
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 2, 0, 0)
+            });
+            metrics.Children.Add(aa);
+
+            var cost = new StackPanel();
+            cost.Children.Add(new TextBlock
+            {
+                Text = "Est. short message*",
+                Foreground = Brush("#9A909F"),
+                FontSize = 12
+            });
+            cost.Children.Add(new TextBlock
+            {
+                Text = model.ShortMessage,
+                Foreground = Brush("#3B3340"),
+                FontSize = 12,
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 2, 0, 0)
+            });
+            Grid.SetColumn(cost, 1);
+            metrics.Children.Add(cost);
+            stack.Children.Add(metrics);
+
+            stack.Children.Add(new TextBlock
+            {
+                Text = "Details →",
+                Foreground = Brush("#5A1A75"),
+                FontSize = 12,
+                FontWeight = FontWeights.SemiBold,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 10, 0, 0)
+            });
+
+            button.Content = stack;
+            return button;
+        }
+
+        private void ConfigureCatalogueRefresh()
+        {
+            _catalogueTimer.Interval = TimeSpan.FromMinutes(30);
+            _catalogueTimer.Tick += delegate { RefreshCatalogueInBackground(); };
+            _catalogueTimer.Start();
+            RefreshCatalogueInBackground();
+        }
+
+        private void RefreshCatalogueInBackground()
+        {
+            if (_catalogueRefreshInFlight) return;
+            _catalogueRefreshInFlight = true;
+
+            Task.Run(delegate { return CatalogueRemote.Refresh(_baseDir); })
+                .ContinueWith(delegate(Task<CatalogueRefreshResult> task)
+                {
+                    _window.Dispatcher.BeginInvoke(new Action(delegate
+                    {
+                        _catalogueRefreshInFlight = false;
+                        if (task.Status != TaskStatus.RanToCompletion
+                            || task.Result == null
+                            || !task.Result.Success
+                            || !task.Result.Changed)
+                            return;
+
+                        _catalogueLoad = task.Result.Current;
+                        RebuildModelInfo();
+                        RenderCatalogue();
+                        ShowToast(
+                            "Models updated",
+                            "WRN model catalogue release " + _catalogueLoad.Catalogue.release + " is ready.");
+                    }));
+                });
+        }
+
+        private static string FormatUsd(double value)
+        {
+            if (value < 0.01)
+                return value.ToString("$0.0000", CultureInfo.InvariantCulture);
+            if (value < 0.1)
+                return value.ToString("$0.000", CultureInfo.InvariantCulture);
+            return value.ToString("$0.00", CultureInfo.InvariantCulture);
         }
 
         private static void OpenOutlookDraft(string to, string subject, string body)

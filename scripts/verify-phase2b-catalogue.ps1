@@ -53,6 +53,29 @@ try {
     if ($source -match "PRIVATE KEY" -or $source -match "ExportCspBlob\(true\)") {
         throw "Catalogue runtime must never contain private signing material."
     }
+    $controllerSource = Get-Content (Join-Path $src "AppController.cs") -Raw
+    if (-not $controllerSource.Contains("TimeSpan.FromMinutes(30)")) {
+        throw "Catalogue refresh cadence is missing or changed unexpectedly."
+    }
+    if (-not $source.Contains("https://raw.githubusercontent.com/")) {
+        throw "Development catalogue source must use HTTPS."
+    }
+
+    $uiSource = (Get-Content (Join-Path $src "ui\MainWindow.xaml") -Raw) +
+        $controllerSource
+    foreach ($fixedModelText in @(
+        "GPT-6 Luna",
+        "Claude Opus 5.5",
+        "GPT-6 Astra",
+        "DeepSeek V4.1 Flash",
+        "openai/gpt-6-",
+        "deepseek/deepseek-",
+        "anthropic/claude-opus"
+    )) {
+        if ($uiSource.Contains($fixedModelText)) {
+            throw "Model-specific UI/controller state must come from the signed catalogue: $fixedModelText"
+        }
+    }
 
     Write-Host ""
     Write-Host ("Catalogue release: " + $json.release)

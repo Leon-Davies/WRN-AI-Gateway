@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
@@ -512,8 +513,11 @@ namespace WRN.AIGateway
                 using (var client = new WebClient())
                 {
                     client.Headers.Add("User-Agent", "WRN-AI-Gateway/" + CatalogueTrust.AppVersion);
-                    bytes = client.DownloadData(CatalogueTrust.RemoteCatalogueUrl);
-                    signature = client.DownloadString(CatalogueTrust.RemoteSignatureUrl);
+                    client.Headers.Add("Cache-Control", "no-cache");
+                    client.Headers.Add("Pragma", "no-cache");
+                    var nonce = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture);
+                    bytes = client.DownloadData(CatalogueTrust.RemoteCatalogueUrl + "?wrn=" + nonce);
+                    signature = client.DownloadString(CatalogueTrust.RemoteSignatureUrl + "?wrn=" + nonce);
                 }
             }
             catch
