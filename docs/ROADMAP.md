@@ -120,7 +120,7 @@ Exit: release-blocking round-trip tests pass without any fixed production model 
 
 ## Phase 4 — Credential onboarding and hardened gateway
 
-**Status: in progress. Native per-user OpenRouter onboarding, CurrentUser-DPAPI storage, replace/test/remove flow, and gateway credential-envelope compatibility are implemented and qualified; broader failure taxonomy/retry hardening remains.**
+**Status: implementation complete and qualified. Native per-user OpenRouter onboarding, CurrentUser-DPAPI storage, normalized friendly failures, bounded idempotent retry, same-model provider failover, no cross-model fallback, request-level ZDR/data policy enforcement, and JSON/SSE error sanitization are implemented. Live Claude switching remains separately blocked by the Phase 3 managed-Claude qualification gate.**
 
 Goal: remove all technical onboarding from colleagues.
 

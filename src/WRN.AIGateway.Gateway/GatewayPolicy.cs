@@ -59,19 +59,19 @@ namespace WRN.AIGateway.Gateway
 
             root["model"] = model.upstreamModel;
 
-            object providerValue;
-            Dictionary<string, object> provider = null;
-            if (root.TryGetValue("provider", out providerValue))
-                provider = providerValue as Dictionary<string, object>;
+            // Routing policy is owned by WRN, not by the caller.
+            // This prevents a local caller from disabling same-model
+            // provider fallback, weakening ZDR, or silently introducing
+            // cross-model fallback.
+            root.Remove("models");
 
-            if (provider == null)
-            {
-                provider = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-                root["provider"] = provider;
-            }
-
+            var provider =
+                new Dictionary<string, object>(
+                    StringComparer.OrdinalIgnoreCase);
             provider["zdr"] = true;
             provider["data_collection"] = "deny";
+            provider["allow_fallbacks"] = true;
+            root["provider"] = provider;
 
             return new GatewayRewriteResult
             {

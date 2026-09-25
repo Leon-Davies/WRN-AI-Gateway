@@ -306,53 +306,205 @@ namespace WRN.AIGateway.Gateway
             await ProxyMessages(stream, request).ConfigureAwait(false);
         }
 
-        private static async Task ProxyMessages(NetworkStream stream, ParsedRequest request)
+        private static async Task ProxyMessages(
+            NetworkStream stream,
+            ParsedRequest request)
         {
-            var rewrite = GatewayPolicy.Rewrite(request.Body, CatalogueLoad.Catalogue);
+            var rewrite =
+                GatewayPolicy.Rewrite(
+                    request.Body,
+                    CatalogueLoad.Catalogue);
+
             if (!rewrite.Allowed)
             {
                 Log(
-                    "rejected_model requested=" +
-                    (rewrite.RequestedModel ?? "<missing>") +
-                    " reason=" + rewrite.Error);
+                    "rejected_request requested="
+                    + (rewrite.RequestedModel ?? "<missing>")
+                    + " reason="
+                    + rewrite.Error);
 
-                await WriteSimple(
+                var failure =
+                    new RuntimeFailure
+                    {
+                        Kind = RuntimeFailureKind.RequestRejected,
+                        Code = "WRN_REQUEST_REJECTED",
+                        Title = "WRN Claude could not send this request",
+                        Message = rewrite.Error == "unsupported_model"
+                            ? "This WRN model is not available. Refresh the model list and try again."
+                            : "WRN Claude could not send this request. Try again.",
+                        Retryable = false,
+                        HttpStatus = 400,
+                        AnthropicErrorType =
+                            "invalid_request_error"
+                    };
+
+                await WriteAnthropicFailure(
                     stream,
-                    400,
-                    "Bad Request",
-                    Encoding.UTF8.GetBytes(
-                        "{\"error\":\"" + JsonEscape(rewrite.Error) + "\"}"))
-                    .ConfigureAwait(false);
+                    failure).ConfigureAwait(false);
                 return;
             }
 
-            var outbound = new HttpRequestMessage(
-                HttpMethod.Post,
-                "https://openrouter.ai/api/v1/messages");
-            outbound.Headers.Authorization =
-                new AuthenticationHeaderValue("Bearer", OpenRouterKey);
-            outbound.Headers.TryAddWithoutValidation("X-Title", "WRN AI Gateway");
-            CopyHeader(request, outbound, "anthropic-version");
-            CopyHeader(request, outbound, "anthropic-beta");
-            outbound.Content = new ByteArrayContent(rewrite.OutboundBody);
-            outbound.Content.Headers.ContentType =
-                new MediaTypeHeaderValue("application/json");
-
             var stopwatch = Stopwatch.StartNew();
             Log(
-                "POST /v1/messages alias=" + rewrite.RequestedModel +
-                " upstream=" + rewrite.UpstreamModel);
+                "POST /v1/messages alias="
+                + rewrite.RequestedModel
+                + " upstream="
+                + rewrite.UpstreamModel);
 
-            var response = await Client.SendAsync(
+            HttpResponseMessage response = null;
+            RuntimeFailure transportFailure = null;
+
+            try
+            {
+                using (var outbound =
+                    BuildOutboundRequest(
+                        request,
+                        rewrite.OutboundBody))
+                {
+                    response = await Client.SendAsync(
+                        outbound,
+                        HttpCompletionOption.ResponseHeadersRead)
+                        .ConfigureAwait(false);
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                transportFailure =
+                    RuntimeFailureCatalog.TransportFailure();
+            }
+            catch (HttpRequestException)
+            {
+                transportFailure =
+                    RuntimeFailureCatalog.TransportFailure();
+            }
+
+            if (transportFailure != null)
+            {
+                stopwatch.Stop();
+                Log(
+                    "upstream_failure code="
+                    + transportFailure.Code
+                    + " latency_ms="
+                    + stopwatch.ElapsedMilliseconds);
+
+                await WriteAnthropicFailure(
+                    stream,
+                    transportFailure).ConfigureAwait(false);
+                return;
+            }
+
+            using (response)
+            {
+                stopwatch.Stop();
+                Log(
+                    "upstream_status="
+                    + (int)response.StatusCode
+                    + " latency_ms="
+                    + stopwatch.ElapsedMilliseconds);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var failure =
+                        RuntimeFailureCatalog.FromUpstreamStatus(
+                            (int)response.StatusCode);
+
+                    Log(
+                        "upstream_failure code="
+                        + failure.Code
+                        + " status="
+                        + (int)response.StatusCode);
+
+                    await WriteAnthropicFailure(
+                        stream,
+                        failure).ConfigureAwait(false);
+                    return;
+                }
+
+                await WriteResponse(
+                    stream,
+                    response).ConfigureAwait(false);
+            }
+        }
+
+        private static HttpRequestMessage BuildOutboundRequest(
+            ParsedRequest request,
+            byte[] outboundBody)
+        {
+            var outbound =
+                new HttpRequestMessage(
+                    HttpMethod.Post,
+                    "https://openrouter.ai/api/v1/messages");
+
+            outbound.Headers.Authorization =
+                new AuthenticationHeaderValue(
+                    "Bearer",
+                    OpenRouterKey);
+            outbound.Headers.TryAddWithoutValidation(
+                "X-Title",
+                "WRN AI Gateway");
+
+            CopyHeader(
+                request,
                 outbound,
-                HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+                "anthropic-version");
+            CopyHeader(
+                request,
+                outbound,
+                "anthropic-beta");
 
-            stopwatch.Stop();
-            Log(
-                "upstream_status=" + (int)response.StatusCode +
-                " latency_ms=" + stopwatch.ElapsedMilliseconds);
+            outbound.Content =
+                new ByteArrayContent(outboundBody);
+            outbound.Content.Headers.ContentType =
+                new MediaTypeHeaderValue(
+                    "application/json");
 
-            await WriteResponse(stream, response).ConfigureAwait(false);
+            return outbound;
+        }
+
+        private static async Task WriteAnthropicFailure(
+            NetworkStream stream,
+            RuntimeFailure failure)
+        {
+            var body = Encoding.UTF8.GetBytes(
+                Json.Serialize(
+                    new
+                    {
+                        type = "error",
+                        error = new
+                        {
+                            type =
+                                failure.AnthropicErrorType
+                                ?? "api_error",
+                            message =
+                                failure.Message
+                        }
+                    }));
+
+            await WriteSimple(
+                stream,
+                failure.HttpStatus > 0
+                    ? failure.HttpStatus
+                    : 503,
+                ReasonPhrase(
+                    failure.HttpStatus),
+                body).ConfigureAwait(false);
+        }
+
+        private static string ReasonPhrase(int status)
+        {
+            switch (status)
+            {
+                case 400:
+                    return "Bad Request";
+                case 401:
+                    return "Unauthorized";
+                case 402:
+                    return "Payment Required";
+                case 429:
+                    return "Too Many Requests";
+                default:
+                    return "Service Unavailable";
+            }
         }
 
         private static void CopyHeader(
@@ -450,6 +602,109 @@ namespace WRN.AIGateway.Gateway
             NetworkStream stream,
             HttpResponseMessage response)
         {
+            var contentType =
+                response.Content.Headers.ContentType == null
+                    ? string.Empty
+                    : response.Content.Headers.ContentType.MediaType;
+
+            if (!string.Equals(
+                contentType,
+                "text/event-stream",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                var body =
+                    await response.Content
+                        .ReadAsByteArrayAsync()
+                        .ConfigureAwait(false);
+
+                RuntimeFailure embeddedFailure;
+                if (GatewayFailureSanitizer.TryMapJsonError(
+                    body,
+                    out embeddedFailure))
+                {
+                    Log(
+                        "embedded_upstream_failure code="
+                        + embeddedFailure.Code);
+
+                    await WriteAnthropicFailure(
+                        stream,
+                        embeddedFailure)
+                        .ConfigureAwait(false);
+                    return;
+                }
+
+                await WriteUpstreamHeaders(
+                    stream,
+                    response).ConfigureAwait(false);
+
+                if (body.Length > 0)
+                {
+                    await stream.WriteAsync(
+                        body,
+                        0,
+                        body.Length)
+                        .ConfigureAwait(false);
+                }
+
+                await stream.FlushAsync()
+                    .ConfigureAwait(false);
+                return;
+            }
+
+            await WriteUpstreamHeaders(
+                stream,
+                response).ConfigureAwait(false);
+
+            using (var upstream =
+                await response.Content
+                    .ReadAsStreamAsync()
+                    .ConfigureAwait(false))
+            using (var reader =
+                new StreamReader(
+                    upstream,
+                    Encoding.UTF8,
+                    true,
+                    16384))
+            {
+                string line;
+                while ((line =
+                    await reader.ReadLineAsync()
+                        .ConfigureAwait(false)) != null)
+                {
+                    string sanitized;
+                    RuntimeFailure embeddedFailure;
+
+                    if (GatewayFailureSanitizer
+                        .TrySanitizeSseDataLine(
+                            line,
+                            out sanitized,
+                            out embeddedFailure))
+                    {
+                        line = sanitized;
+                        Log(
+                            "embedded_stream_failure code="
+                            + embeddedFailure.Code);
+                    }
+
+                    var bytes =
+                        Encoding.UTF8.GetBytes(
+                            line + "\r\n");
+
+                    await stream.WriteAsync(
+                        bytes,
+                        0,
+                        bytes.Length)
+                        .ConfigureAwait(false);
+                    await stream.FlushAsync()
+                        .ConfigureAwait(false);
+                }
+            }
+        }
+
+        private static async Task WriteUpstreamHeaders(
+            NetworkStream stream,
+            HttpResponseMessage response)
+        {
             var builder = new StringBuilder();
             builder.Append("HTTP/1.1 ")
                 .Append((int)response.StatusCode)
@@ -464,10 +719,16 @@ namespace WRN.AIGateway.Gateway
                     .Append("\r\n");
             }
 
-            foreach (var name in new[] { "x-request-id", "openrouter-generation-id" })
+            foreach (var name in new[]
+            {
+                "x-request-id",
+                "openrouter-generation-id"
+            })
             {
                 IEnumerable<string> values;
-                if (response.Headers.TryGetValues(name, out values))
+                if (response.Headers.TryGetValues(
+                    name,
+                    out values))
                 {
                     foreach (var value in values)
                     {
@@ -482,28 +743,18 @@ namespace WRN.AIGateway.Gateway
             builder.Append("Cache-Control: no-cache\r\n")
                 .Append("Connection: close\r\n\r\n");
 
-            var responseHead = Encoding.ASCII.GetBytes(builder.ToString());
-            await stream.WriteAsync(
-                responseHead,
-                0,
-                responseHead.Length).ConfigureAwait(false);
-            await stream.FlushAsync().ConfigureAwait(false);
+            var head =
+                Encoding.ASCII.GetBytes(
+                    builder.ToString());
 
-            using (var upstream =
-                await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-            {
-                var buffer = new byte[16384];
-                int count;
-                while ((count = await upstream.ReadAsync(
-                    buffer,
-                    0,
-                    buffer.Length).ConfigureAwait(false)) > 0)
-                {
-                    await stream.WriteAsync(buffer, 0, count).ConfigureAwait(false);
-                    await stream.FlushAsync().ConfigureAwait(false);
-                }
-            }
+            await stream.WriteAsync(
+                head,
+                0,
+                head.Length).ConfigureAwait(false);
+            await stream.FlushAsync()
+                .ConfigureAwait(false);
         }
+
         private static async Task WriteSimple(
             NetworkStream stream,
             int code,

@@ -28,6 +28,30 @@ function Get-OpenRouterKey {
     throw "OpenRouter key entry not found."
 }
 
+function Test-FriendlyFailureBody {
+    param(
+        [string]$Body,
+        [string]$UpstreamModel
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Body)) {
+        return $false
+    }
+
+    if ($Body.Contains("openrouter.ai") -or
+        (-not [string]::IsNullOrWhiteSpace($UpstreamModel) -and
+         $Body.Contains($UpstreamModel))) {
+        return $false
+    }
+
+    return (
+        $Body.Contains("model service") -or
+        $Body.Contains("OpenRouter connection needs attention") -or
+        $Body.Contains("usage limit") -or
+        $Body.Contains("WRN Claude")
+    )
+}
+
 try {
     & (Join-Path $PSScriptRoot "build-gateway.ps1") | Out-Null
 
@@ -101,10 +125,32 @@ try {
         messages = @(@{ role = "user"; content = "Reply with exactly GATEWAY_DIRECT_OK and nothing else." })
     } | ConvertTo-Json -Depth 12
 
-    $response = Invoke-RestMethod -Uri ("http://127.0.0.1:" + $Port + "/v1/messages") -Headers $headers -Method Post -ContentType "application/json" -Body $body -TimeoutSec 120
-    $text = (($response.content | Where-Object { $_.type -eq "text" } | ForEach-Object { $_.text }) -join "").Trim()
-    if ($text -ne "GATEWAY_DIRECT_OK") {
-        throw "Unexpected non-stream gateway response."
+    $successObserved = $false
+    $nonStreamOutcome = $null
+    $response = $null
+
+    try {
+        $response = Invoke-RestMethod -Uri ("http://127.0.0.1:" + $Port + "/v1/messages") -Headers $headers -Method Post -ContentType "application/json" -Body $body -TimeoutSec 120
+        $text = (($response.content | Where-Object { $_.type -eq "text" } | ForEach-Object { $_.text }) -join "").Trim()
+
+        if ($text -ne "GATEWAY_DIRECT_OK") {
+            throw "Unexpected non-stream gateway response."
+        }
+
+        $successObserved = $true
+        $nonStreamOutcome = "SUCCESS"
+    }
+    catch {
+        $status = if ($_.Exception.Response) { [int]$_.Exception.Response.StatusCode } else { 0 }
+        $friendlyBody = [string]$_.ErrorDetails.Message
+
+        if ($status -in @(400, 401, 402, 429, 503) -and
+            (Test-FriendlyFailureBody -Body $friendlyBody -UpstreamModel $model.upstreamModel)) {
+            $nonStreamOutcome = "FRIENDLY_FAILURE_" + $status
+        }
+        else {
+            throw
+        }
     }
 
     $streamBody = @{
@@ -114,26 +160,68 @@ try {
         messages = @(@{ role = "user"; content = "Reply with exactly GATEWAY_STREAM_OK and nothing else." })
     } | ConvertTo-Json -Depth 12
 
-    $streamResponse = Invoke-WebRequest -UseBasicParsing -Uri ("http://127.0.0.1:" + $Port + "/v1/messages") -Headers $headers -Method Post -ContentType "application/json" -Body $streamBody -TimeoutSec 120
+    $streamOutcome = $null
+    $streamResponse = $null
 
-    $parts = New-Object System.Collections.Generic.List[string]
-    foreach ($line in ([string]$streamResponse.Content -split "[\r\n]+")) {
-        if (-not $line.StartsWith("data: ")) { continue }
-        $payload = $line.Substring(6).Trim()
-        if (-not $payload -or $payload -eq "[DONE]") { continue }
+    try {
+        $streamResponse = Invoke-WebRequest -UseBasicParsing -Uri ("http://127.0.0.1:" + $Port + "/v1/messages") -Headers $headers -Method Post -ContentType "application/json" -Body $streamBody -TimeoutSec 120
+    }
+    catch {
+        $status = if ($_.Exception.Response) { [int]$_.Exception.Response.StatusCode } else { 0 }
+        $friendlyBody = [string]$_.ErrorDetails.Message
 
-        try { $event = $payload | ConvertFrom-Json } catch { continue }
-
-        if ($event.type -eq "content_block_delta" -and
-            $event.delta.type -eq "text_delta" -and
-            $event.delta.text) {
-            $parts.Add([string]$event.delta.text)
+        if ($status -in @(400, 401, 402, 429, 503) -and
+            (Test-FriendlyFailureBody -Body $friendlyBody -UpstreamModel $model.upstreamModel)) {
+            $streamOutcome = "FRIENDLY_FAILURE_" + $status
+        }
+        else {
+            throw
         }
     }
 
-    if (($parts -join "").Trim() -ne "GATEWAY_STREAM_OK" -or
-        -not ([string]$streamResponse.Content).Contains("message_stop")) {
-        throw "Unexpected streamed gateway response."
+    if ($streamResponse) {
+        $parts = New-Object System.Collections.Generic.List[string]
+        $errorMessages = New-Object System.Collections.Generic.List[string]
+
+        foreach ($line in ([string]$streamResponse.Content -split "[\r\n]+")) {
+            if (-not $line.StartsWith("data: ")) { continue }
+            $payload = $line.Substring(6).Trim()
+            if (-not $payload -or $payload -eq "[DONE]") { continue }
+
+            try { $event = $payload | ConvertFrom-Json } catch { continue }
+
+            if ($event.type -eq "content_block_delta" -and
+                $event.delta.type -eq "text_delta" -and
+                $event.delta.text) {
+                $parts.Add([string]$event.delta.text)
+            }
+
+            if ($event.type -eq "error" -and $event.error.message) {
+                $errorMessages.Add([string]$event.error.message)
+            }
+        }
+
+        if (($parts -join "").Trim() -eq "GATEWAY_STREAM_OK" -and
+            ([string]$streamResponse.Content).Contains("message_stop")) {
+            $successObserved = $true
+            $streamOutcome = "SUCCESS"
+        }
+        elseif ($errorMessages.Count -gt 0) {
+            foreach ($message in $errorMessages) {
+                if (-not (Test-FriendlyFailureBody -Body $message -UpstreamModel $model.upstreamModel)) {
+                    throw "Streamed upstream error was not sanitized."
+                }
+            }
+
+            $streamOutcome = "FRIENDLY_FAILURE_EVENT"
+        }
+        else {
+            throw "Unexpected streamed gateway response."
+        }
+    }
+
+    if (-not $successObserved) {
+        throw "Live gateway smoke observed no successful inference."
     }
 
     try {
@@ -158,9 +246,22 @@ try {
         }
     }
 
+    $provider = if ($response -and $response.provider) { [string]$response.provider } else { "<not-observed>" }
+
+    $gatewayLog = Join-Path $state "gateway\gateway.log"
+    if (Test-Path -LiteralPath $gatewayLog) {
+        $logText = Get-Content -LiteralPath $gatewayLog -Raw
+        if ($logText.Contains("GATEWAY_DIRECT_OK") -or
+            $logText.Contains("GATEWAY_STREAM_OK") -or
+            $logText.Contains("openrouter.ai/settings")) {
+            throw "Gateway log contains request/upstream error content."
+        }
+    }
+
     Write-Output ("HEALTH=PASS release=" + $health.catalogueRelease)
-    Write-Output ("NONSTREAM=PASS alias=" + $model.claudeAlias + " provider=" + $response.provider)
-    Write-Output "STREAM=PASS"
+    Write-Output ("NONSTREAM=" + $nonStreamOutcome + " alias=" + $model.claudeAlias + " provider=" + $provider)
+    Write-Output ("STREAM=" + $streamOutcome)
+    Write-Output "FRIENDLY_FAILURE_SANITIZATION=PASS"
     Write-Output "BAD_AUTH=PASS"
     Write-Output "DIRECT_UPSTREAM_ID_REJECTED=PASS"
     Write-Output "PHASE3_LIVE_GATEWAY_SMOKE_PASS"

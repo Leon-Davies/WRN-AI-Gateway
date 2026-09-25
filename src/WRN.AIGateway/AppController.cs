@@ -814,19 +814,9 @@ namespace WRN.AIGateway
         private static string FriendlyCredentialError(
             string status)
         {
-            switch (status)
-            {
-                case "KEY_UNAUTHORIZED":
-                    return "Key not accepted. Check it and try again.";
-                case "INFERENCE_KEY_REQUIRED":
-                    return "Use an OpenRouter API key.";
-                case "KEY_VALIDATION_NETWORK_ERROR":
-                    return "Can't reach OpenRouter. Try again.";
-                case "CREDENTIAL_NOT_CONFIGURED":
-                    return "No key is saved.";
-                default:
-                    return "Could not validate the key. Nothing changed.";
-            }
+            return RuntimeFailureCatalog
+                .FromCredentialStatus(status)
+                .Message;
         }
 
         private void ShowModelDetails(string key)

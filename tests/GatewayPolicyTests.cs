@@ -81,6 +81,66 @@ internal static class GatewayPolicyTests
         Check(
             "data collection forced deny",
             provider != null && Convert.ToString(provider["data_collection"]) == "deny");
+        Check(
+            "same-model provider failover explicitly enabled",
+            provider != null
+            && Convert.ToBoolean(provider["allow_fallbacks"]));
+
+        var hostile = new Dictionary<string, object>(request);
+        hostile["models"] = new object[]
+        {
+            selected.upstreamModel,
+            "other/provider-model"
+        };
+        hostile["provider"] =
+            new Dictionary<string, object>
+            {
+                { "zdr", false },
+                { "data_collection", "allow" },
+                { "allow_fallbacks", false },
+                { "only", new object[] { "caller-provider" } },
+                { "order", new object[] { "caller-provider" } },
+                { "sort", "latency" }
+            };
+
+        var hostileResult = GatewayPolicy.Rewrite(
+            Encoding.UTF8.GetBytes(Json.Serialize(hostile)),
+            catalogue);
+        Check(
+            "hostile caller routing still allowed through WRN policy",
+            hostileResult.Allowed);
+
+        var hostileOutbound =
+            Json.DeserializeObject(
+                Encoding.UTF8.GetString(
+                    hostileResult.OutboundBody))
+            as Dictionary<string, object>;
+        Check(
+            "cross-model fallback removed",
+            hostileOutbound != null
+            && !hostileOutbound.ContainsKey("models"));
+
+        var hostileProvider =
+            hostileOutbound["provider"]
+            as Dictionary<string, object>;
+        Check(
+            "caller provider allowlist removed",
+            hostileProvider != null
+            && !hostileProvider.ContainsKey("only")
+            && !hostileProvider.ContainsKey("order")
+            && !hostileProvider.ContainsKey("sort"));
+        Check(
+            "caller cannot disable provider fallback",
+            hostileProvider != null
+            && Convert.ToBoolean(
+                hostileProvider["allow_fallbacks"]));
+        Check(
+            "caller cannot weaken privacy routing",
+            hostileProvider != null
+            && Convert.ToBoolean(hostileProvider["zdr"])
+            && Convert.ToString(
+                hostileProvider["data_collection"])
+                == "deny");
 
         var direct = new Dictionary<string, object>(request);
         direct["model"] = selected.upstreamModel;
