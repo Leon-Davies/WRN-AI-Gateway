@@ -163,6 +163,10 @@ namespace WRN.AIGateway
             {
                 ShowRemoveOpenRouterCredentialDialog();
             };
+            Find<Button>("CredentialInfoButton").Click += delegate
+            {
+                ShowOpenRouterInfoDialog();
+            };
 
             Find<Button>("ModelRequestButton").Click += delegate
             {
@@ -664,6 +668,64 @@ namespace WRN.AIGateway
             Find<Button>(
                 "CredentialRemoveButton").IsEnabled =
                 false;
+        }
+
+        private void ShowOpenRouterInfoDialog()
+        {
+            var dialog = CreateDialog(
+                "About OpenRouter",
+                500,
+                330);
+
+            var body =
+                new StackPanel
+                {
+                    Margin = new Thickness(28)
+                };
+
+            body.Children.Add(
+                new TextBlock
+                {
+                    Text = "About OpenRouter",
+                    FontSize = 24,
+                    FontWeight =
+                        FontWeights.SemiBold,
+                    Foreground = Brush("#302536"),
+                    Margin =
+                        new Thickness(0, 0, 0, 18)
+                });
+
+            body.Children.Add(
+                new TextBlock
+                {
+                    Text =
+                        "• Your key is checked before it is saved.\n\n"
+                        + "• It is protected for your Windows account.\n\n"
+                        + "• It is not shown again after saving.\n\n"
+                        + "• WRN Claude uses this connection when WRN mode is enabled.",
+                    FontSize = 13.5,
+                    Foreground = Brush("#5F5664"),
+                    TextWrapping = TextWrapping.Wrap,
+                    LineHeight = 19
+                });
+
+            var close =
+                DialogButton("Close", true);
+            close.HorizontalAlignment =
+                HorizontalAlignment.Right;
+            close.Margin =
+                new Thickness(0, 24, 0, 0);
+            close.Click += delegate
+            {
+                dialog.Close();
+            };
+            body.Children.Add(close);
+
+            dialog.Content =
+                CreateDialogShell(
+                    dialog,
+                    body);
+            dialog.ShowDialog();
         }
 
         private void
