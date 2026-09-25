@@ -33,6 +33,7 @@ try {
         (Join-Path $src "ModelCatalogue.cs"),
         (Join-Path $src "ClaudeTransition.cs"),
         (Join-Path $src "ModeCoordinator.cs"),
+        (Join-Path $src "GatewayLifecycle.cs"),
         (Join-Path $root "tests\ModeCoordinatorTests.cs")
     )
 
