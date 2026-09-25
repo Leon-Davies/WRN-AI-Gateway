@@ -247,6 +247,16 @@ internal static class ModeCoordinatorTests
             + " healthy=" + runtime.Healthy
             + " started=" + runtime.Started
             + " pid=" + runtime.ProcessId);
+        if (!runtime.Healthy)
+        {
+            var logPath = Path.Combine(
+                fixture.StateRoot,
+                "gateway",
+                "gateway.log");
+            if (File.Exists(logPath))
+                Console.WriteLine(
+                    "GATEWAY_LOG " + File.ReadAllText(logPath));
+        }
         Check(
             "owned gateway starts for healthy fixture",
             runtime.Healthy
