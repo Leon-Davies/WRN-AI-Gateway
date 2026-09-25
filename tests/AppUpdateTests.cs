@@ -708,15 +708,15 @@ internal static class AppUpdateTests
 
         WriteSentinel(
             root,
-            "credentials\sentinel.bin",
+            @"credentials\sentinel.bin",
             fixture.CredentialSentinel);
         WriteSentinel(
             root,
-            "catalogue\sentinel.bin",
+            @"catalogue\sentinel.bin",
             fixture.CatalogueSentinel);
         WriteSentinel(
             root,
-            "transition\sentinel.bin",
+            @"transition\sentinel.bin",
             fixture.TransitionSentinel);
 
         return fixture;
