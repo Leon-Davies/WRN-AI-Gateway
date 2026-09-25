@@ -15,6 +15,8 @@ namespace WRN.AIGateway
 
             if (CatalogueCommand.TryRun(args, baseDir))
                 return;
+            if (ModeCoordinatorCommand.TryRun(args, baseDir))
+                return;
             if (DiscoveryCommand.TryRun(args))
                 return;
 
