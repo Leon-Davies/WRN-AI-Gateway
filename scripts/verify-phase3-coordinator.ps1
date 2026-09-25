@@ -47,10 +47,11 @@ try {
         throw "Mode coordinator fixture tests failed."
     }
 
+    $wrnProfileId = "a179a3b8-7f6e-4c80-9e33-3ed210fe3d41"
     $paths = @(
         (Join-Path $env:LOCALAPPDATA "Claude-3p\claude_desktop_config.json"),
         (Join-Path $env:LOCALAPPDATA "Claude-3p\configLibrary\_meta.json"),
-        (Join-Path $env:LOCALAPPDATA ("Claude-3p\configLibrary\" + [WRN.AIGateway.ClaudePaths]::WrnProfileId + ".json"))
+        (Join-Path $env:LOCALAPPDATA ("Claude-3p\configLibrary\" + $wrnProfileId + ".json"))
     )
 
     $before = @{}
