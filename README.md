@@ -5,7 +5,7 @@ WRN AI Gateway is a user-space launcher and configuration layer for WRN colleagu
 The product is not a replacement for Claude Desktop. It is a small companion application that launches the organisation-managed Claude installation in one of two clearly separated modes:
 
 - **WTW Claude** — the baseline, organisation-managed Claude experience.
-- **WRN Claude** — the same managed Claude application, configured to route model inference through the WTW OpenRouter organisation and the WRN-approved model catalogue.
+- **WRN Claude** — the same managed Claude application, configured to route model inference through the WTW OpenRouter organisation and the WRN-published model catalogue.
 
 The intended user experience is a dedicated WRN AI Gateway application with a friendly home screen, a time-appropriate greeting, two large launch cards, current model recommendations, a changelog, update status, and support information.
 
