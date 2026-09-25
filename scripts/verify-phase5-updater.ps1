@@ -46,6 +46,32 @@ try {
         throw "App update fixture tests failed."
     }
 
+    $runtimeTestExe = Join-Path $temp "AppUpdateRuntimeTests.exe"
+    & $csc @(
+        "/nologo",
+        "/target:exe",
+        "/out:$runtimeTestExe",
+        ("/reference:" + (Join-Path $framework "System.dll")),
+        ("/reference:" + (Join-Path $framework "System.Core.dll")),
+        ("/reference:" + (Join-Path $framework "System.Security.dll")),
+        ("/reference:" + (Join-Path $framework "System.Web.Extensions.dll")),
+        ("/reference:" + (Join-Path $framework "System.Xml.dll")),
+        ("/reference:" + (Join-Path $framework "System.IO.Compression.dll")),
+        ("/reference:" + (Join-Path $framework "System.IO.Compression.FileSystem.dll")),
+        (Join-Path $src "ModelCatalogue.cs"),
+        (Join-Path $src "AppUpdate.cs"),
+        (Join-Path $src "AppUpdateRuntime.cs"),
+        (Join-Path $root "tests\AppUpdateRuntimeTests.cs")
+    )
+    if ($LASTEXITCODE -ne 0) {
+        throw "App update runtime fixture compilation failed."
+    }
+
+    & $runtimeTestExe (Join-Path $temp "runtime-fixtures")
+    if ($LASTEXITCODE -ne 0) {
+        throw "App update runtime fixture tests failed."
+    }
+
     & (Join-Path $PSScriptRoot "package.ps1") -Version "0.5.0-beta.1" -AppRelease 1 | Out-Null
 
     $release = Join-Path $root "release\WRN-AI-Gateway-v0.5.0-beta.1"
@@ -97,6 +123,7 @@ try {
         "UPDATE_ROLLBACK_REJECTED",
         "UPDATE_ARTIFACT_HASH_MISMATCH",
         "Archive path traversal rejected",
+        "MaximumExtractedBytes",
         "AppSelfCheck.ValidateDirectory"
     )) {
         if (-not $updateSource.Contains($requiredPrimitive)) {
@@ -122,10 +149,53 @@ try {
     }
 
     $runnerSource = Get-Content (Join-Path $updaterSrc "Program.cs") -Raw
-    if (-not $runnerSource.Contains('GetProcessesByName(') -or
-        -not $runnerSource.Contains('"claude"') -or
-        -not $runnerSource.Contains("--self-check")) {
-        throw "Updater runner safe-point checks are incomplete."
+    foreach ($requiredRunner in @(
+        'GetProcessesByName(',
+        '"claude"',
+        '"WRN-AI-Gateway-Gateway"',
+        "--self-check",
+        "TryLaunchHealthyCurrent"
+    )) {
+        if (-not $runnerSource.Contains($requiredRunner)) {
+            throw "Updater runner safe-point check is missing: $requiredRunner"
+        }
+    }
+
+    $runtimeSource = Get-Content (Join-Path $src "AppUpdateRuntime.cs") -Raw
+    foreach ($requiredRuntime in @(
+        "TryGetInstalledContext",
+        "DownloadAndStage",
+        "PrepareUpdaterHelper",
+        '"updater"',
+        "UPDATE_NOT_INSTALLED_CONTEXT",
+        "UPDATE_DEFERRED_CLAUDE_RUNNING"
+    )) {
+        if (-not $runtimeSource.Contains($requiredRuntime)) {
+            throw "Application update runtime primitive is missing: $requiredRuntime"
+        }
+    }
+
+    $controllerSource = Get-Content (Join-Path $src "AppController.cs") -Raw
+    foreach ($requiredController in @(
+        "AppUpdateRuntime.CheckRemote",
+        "AppUpdateRuntime.DownloadAndStage",
+        "AppUpdateRuntime.StartActivation",
+        "InstallStagedAppUpdate"
+    )) {
+        if (-not $controllerSource.Contains($requiredController)) {
+            throw "Application update UI wiring is missing: $requiredController"
+        }
+    }
+
+    $xamlSource = Get-Content (Join-Path $src "ui\MainWindow.xaml") -Raw
+    foreach ($requiredUi in @(
+        'x:Name="AppUpdateStatusText"',
+        'x:Name="AppUpdateVersionText"',
+        'x:Name="AppUpdateButton"'
+    )) {
+        if (-not $xamlSource.Contains($requiredUi)) {
+            throw "Application update UI element is missing: $requiredUi"
+        }
     }
 
     Write-Host ""
@@ -138,6 +208,11 @@ try {
     Write-Host "PASS: failed post-activation health restores last-known-good"
     Write-Host "PASS: pending Claude transition defers app activation"
     Write-Host "PASS: external updater helper builds"
+    Write-Host "PASS: persistent updater helper is outside current/previous trees"
+    Write-Host "PASS: development builds cannot activate installed-app updates"
+    Write-Host "PASS: Updates page is wired to check / download / install"
+    Write-Host "PASS: late Claude/gateway race safely defers and relaunches current"
+    Write-Host "PASS: expanded archive size is bounded"
     Write-Host "PASS: packaged release identity + headless self-check"
     Write-Host "PASS: package contains no credential material"
     Write-Host "PHASE5_UPDATER_CORE_VERIFY_PASS" -ForegroundColor Green
