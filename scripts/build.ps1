@@ -84,11 +84,14 @@ $args += (Join-Path $src "Program.cs")
 $args += (Join-Path $src "AppController.cs")
 $args += (Join-Path $src "ClaudeDiscovery.cs")
 $args += (Join-Path $src "ModelCatalogue.cs")
+$args += (Join-Path $src "ClaudeTransition.cs")
 
 & $csc $args
 if ($LASTEXITCODE -ne 0) {
     throw "Compilation failed with exit code $LASTEXITCODE"
 }
+
+& (Join-Path $PSScriptRoot "build-gateway.ps1") | Out-Null
 
 Write-Host ""
 Write-Host "Build complete:" -ForegroundColor Green

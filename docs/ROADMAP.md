@@ -102,6 +102,8 @@ Exit: model publication is a repeatable bounded workflow and a test laptop consu
 
 ## Phase 3 — Round-trip switching
 
+**Status: in progress. Catalogue-driven production gateway core is implemented and live-smoke-qualified; transactional switching remains fixture-only until the clean managed-Claude gate.**
+
 Goal: implement WTW ↔ WRN switching safely against the dynamic catalogue runtime.
 
 Deliverables:
