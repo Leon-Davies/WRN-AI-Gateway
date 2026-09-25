@@ -195,3 +195,28 @@ Production mode-transition logic and gateway policy must not depend on a permane
 Reason:
 
 The owner must be able to add, withdraw, re-describe, or change the recommended model from the maintainer laptop without rebuilding or manually reinstalling every colleague's application. Model changes have a materially faster cadence than application releases.
+
+
+## ADR-019 — Do not automatically replay inference requests
+
+**Status:** Accepted
+
+WRN AI Gateway does not automatically retry an inference POST after an ambiguous transport or service failure.
+
+Idempotent health/credential checks may use bounded retry.
+
+Reason:
+
+A lost response does not prove that the upstream model request failed before execution. Replaying it could duplicate model work, cost, or tool side effects. Same-model provider failover should occur inside OpenRouter's routing layer rather than by replaying the whole request locally.
+
+## ADR-020 — WRN owns routing policy; same-model fallback only
+
+**Status:** Accepted
+
+The local gateway discards caller provider-routing overrides and cross-model fallback arrays.
+
+It enforces ZDR and denied data collection, while permitting OpenRouter to select another eligible provider for the same selected model.
+
+Reason:
+
+Transparent provider failover improves availability without changing the user's model choice. Cross-model fallback would violate ADR-010 and could silently change behavior, quality, or data-routing characteristics.
