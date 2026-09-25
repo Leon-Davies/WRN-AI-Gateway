@@ -969,6 +969,10 @@ internal static class AppUpdateTests
         CopyDirectory(
             dist,
             source);
+
+        RemoveLocalHeroAssets(
+            source);
+
         WriteIdentity(
             source,
             identityRelease,
@@ -1050,6 +1054,26 @@ internal static class AppUpdateTests
                 signature,
                 0,
                 signature.Length);
+        }
+    }
+
+    private static void RemoveLocalHeroAssets(
+        string appRoot)
+    {
+        var assets =
+            Path.Combine(
+                appRoot,
+                "assets");
+
+        if (!Directory.Exists(assets))
+            return;
+
+        foreach (var hero in Directory.GetFiles(
+            assets,
+            "wrn-hero*.png",
+            SearchOption.TopDirectoryOnly))
+        {
+            File.Delete(hero);
         }
     }
 
