@@ -228,7 +228,7 @@ namespace WRN.AIGateway
                     RuntimeFailureKind.RateLimit,
                     "OPENROUTER_RATE_LIMITED",
                     "The model service is busy",
-                    "Wait a moment and try again.",
+                    "The model service is busy. Wait a moment and try again.",
                     false,
                     429,
                     "rate_limit_error");
