@@ -621,6 +621,10 @@ namespace WRN.AIGateway
                     artifactBytes,
                     appRoot);
 
+                PreserveLocalBrandAssets(
+                    currentRoot,
+                    appRoot);
+
                 AppReleaseIdentity identity;
                 if (!AppReleaseIdentityStore.TryRead(
                     appRoot,
@@ -745,6 +749,80 @@ namespace WRN.AIGateway
                     currentRelease,
                     manifest.release,
                     prepare);
+            }
+        }
+
+        private static void PreserveLocalBrandAssets(
+            string currentRoot,
+            string candidateRoot)
+        {
+            var sourceAssets =
+                Path.Combine(
+                    currentRoot,
+                    "assets");
+
+            if (!Directory.Exists(sourceAssets))
+                return;
+
+            var files =
+                Directory.GetFiles(
+                    sourceAssets,
+                    "wrn-hero*.png",
+                    SearchOption.TopDirectoryOnly);
+
+            if (files.Length > 20)
+            {
+                throw new InvalidDataException(
+                    "Local brand asset count limit exceeded.");
+            }
+
+            long total = 0;
+            var allowed = files
+                .Select(
+                    delegate(string path)
+                    {
+                        return new FileInfo(path);
+                    })
+                .Where(
+                    delegate(FileInfo info)
+                    {
+                        return info.Exists
+                            && info.Length > 0
+                            && info.Length
+                                <= 10L * 1024L * 1024L;
+                    })
+                .ToArray();
+
+            foreach (var info in allowed)
+            {
+                total += info.Length;
+                if (total
+                    > 50L * 1024L * 1024L)
+                {
+                    throw new InvalidDataException(
+                        "Local brand asset size limit exceeded.");
+                }
+            }
+
+            if (allowed.Length == 0)
+                return;
+
+            var destinationAssets =
+                Path.Combine(
+                    candidateRoot,
+                    "assets");
+
+            Directory.CreateDirectory(
+                destinationAssets);
+
+            foreach (var info in allowed)
+            {
+                File.Copy(
+                    info.FullName,
+                    Path.Combine(
+                        destinationAssets,
+                        info.Name),
+                    true);
             }
         }
 
