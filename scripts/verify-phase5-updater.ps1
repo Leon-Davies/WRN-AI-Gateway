@@ -46,7 +46,7 @@ try {
         throw "App update fixture tests failed."
     }
 
-    & (Join-Path $PSScriptRoot "package.ps1") -Version "0.5.0-beta.1" -Release 1 | Out-Null
+    & (Join-Path $PSScriptRoot "package.ps1") -Version "0.5.0-beta.1" -AppRelease 1 | Out-Null
 
     $release = Join-Path $root "release\WRN-AI-Gateway-v0.5.0-beta.1"
     $app = Join-Path $release "app"
