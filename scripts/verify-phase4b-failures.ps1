@@ -30,6 +30,27 @@ try {
         throw "Runtime failure tests failed."
     }
 
+    $sanitizerExe = Join-Path $temp "GatewayFailureSanitizerTests.exe"
+    & $csc @(
+        "/nologo",
+        "/target:exe",
+        "/out:$sanitizerExe",
+        ("/reference:" + (Join-Path $framework "System.dll")),
+        ("/reference:" + (Join-Path $framework "System.Core.dll")),
+        ("/reference:" + (Join-Path $framework "System.Web.Extensions.dll")),
+        (Join-Path $src "RuntimeFailures.cs"),
+        (Join-Path $gatewaySrc "GatewayFailureSanitizer.cs"),
+        (Join-Path $root "tests\GatewayFailureSanitizerTests.cs")
+    )
+    if ($LASTEXITCODE -ne 0) {
+        throw "Gateway failure sanitizer test compilation failed."
+    }
+
+    & $sanitizerExe
+    if ($LASTEXITCODE -ne 0) {
+        throw "Gateway failure sanitizer tests failed."
+    }
+
     $policy = Get-Content (Join-Path $gatewaySrc "GatewayPolicy.cs") -Raw
     foreach ($requiredPolicy in @(
         'root.Remove("models")',
@@ -57,7 +78,9 @@ try {
         "RuntimeFailureCatalog.FromUpstreamStatus",
         "RuntimeFailureCatalog.TransportFailure",
         "WriteAnthropicFailure",
-        "response.IsSuccessStatusCode"
+        "response.IsSuccessStatusCode",
+        "GatewayFailureSanitizer.TryMapJsonError",
+        "GatewayFailureSanitizer.TrySanitizeSseDataLine"
     )) {
         if (-not $gateway.Contains($requiredGateway)) {
             throw "Gateway friendly-failure primitive is missing: $requiredGateway"
@@ -96,6 +119,7 @@ try {
     Write-Host "PASS: caller routing overrides discarded"
     Write-Host "PASS: ZDR/data-collection policy remains enforced"
     Write-Host "PASS: final upstream failures map to Anthropic-compatible friendly errors"
+    Write-Host "PASS: HTTP-200 embedded JSON/SSE errors are sanitized"
     Write-Host "PASS: raw upstream failure bodies are not surfaced/logged"
     Write-Host "PHASE4B_FAILURES_VERIFY_PASS" -ForegroundColor Green
 }
