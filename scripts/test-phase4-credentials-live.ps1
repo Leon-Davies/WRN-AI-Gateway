@@ -31,6 +31,7 @@ try {
         (Join-Path $src "ModeCoordinator.cs"),
         (Join-Path $src "GatewayLifecycle.cs"),
         (Join-Path $src "OpenRouterCredentials.cs"),
+        (Join-Path $src "RuntimeFailures.cs"),
         (Join-Path $root "tests\CredentialLiveValidation.cs")
     )
 
