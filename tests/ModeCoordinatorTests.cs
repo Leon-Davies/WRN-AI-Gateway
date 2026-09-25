@@ -236,6 +236,46 @@ internal static class ModeCoordinatorTests
             "stopped gateway reported as start-required",
             !report.GatewayHealthy
             && report.GatewayStartRequired);
+
+        var runtime = GatewayLifecycle.EnsureHealthy(
+            baseDir,
+            fixture.StateRoot,
+            report.CatalogueRelease,
+            5000);
+        Check(
+            "owned gateway starts for healthy fixture",
+            runtime.Healthy
+            && runtime.Started
+            && runtime.ProcessId > 0);
+
+        var runningReport = ModeCoordinator.Inspect(
+            "wrn",
+            baseDir,
+            fixture.StateRoot,
+            fixture.Paths,
+            HealthyWtw());
+        Check(
+            "running owned gateway becomes healthy preflight",
+            runningReport.GatewayHealthy
+            && !runningReport.GatewayStartRequired);
+
+        Check(
+            "owned gateway stops by verified process identity",
+            GatewayLifecycle.StopOwned(
+                baseDir,
+                fixture.StateRoot));
+
+        var stoppedReport = ModeCoordinator.Inspect(
+            "wrn",
+            baseDir,
+            fixture.StateRoot,
+            fixture.Paths,
+            HealthyWtw());
+        Check(
+            "stopped owned gateway returns to start-required",
+            !stoppedReport.GatewayHealthy
+            && stoppedReport.GatewayStartRequired);
+
         Check(
             "live execution remains disabled",
             !report.LiveExecutionEnabled
