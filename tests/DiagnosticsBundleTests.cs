@@ -164,6 +164,28 @@ internal static class DiagnosticsBundleTests
                     StringComparison.Ordinal) < 0);
 
             Check(
+                "prompt/content fields are defensively redacted",
+                gateway.IndexOf(
+                    "CONFIDENTIAL_PROMPT_FIELD",
+                    StringComparison.Ordinal) < 0
+                && gateway.IndexOf(
+                    "CONFIDENTIAL_CONTENT_FIELD",
+                    StringComparison.Ordinal) < 0);
+
+            Check(
+                "email and user-profile path are redacted",
+                gateway.IndexOf(
+                    "someone@example.test",
+                    StringComparison.OrdinalIgnoreCase) < 0
+                && gateway.IndexOf(
+                    Environment.GetFolderPath(
+                        Environment.SpecialFolder.UserProfile),
+                    StringComparison.OrdinalIgnoreCase) < 0
+                && gateway.IndexOf(
+                    "%USERPROFILE%",
+                    StringComparison.Ordinal) >= 0);
+
+            Check(
                 "safe updater audit retained",
                 update.IndexOf(
                     "UPDATE_ACTIVATED",
@@ -181,7 +203,17 @@ internal static class DiagnosticsBundleTests
                 "Bearer token-456")
                 .IndexOf(
                     "token-456",
-                    StringComparison.Ordinal) < 0);
+                    StringComparison.Ordinal) < 0
+            && DiagnosticsBundle.SanitizeLine(
+                "message=private-message")
+                .IndexOf(
+                    "private-message",
+                    StringComparison.Ordinal) < 0
+            && DiagnosticsBundle.SanitizeLine(
+                "someone@example.test")
+                .IndexOf(
+                    "someone@example.test",
+                    StringComparison.OrdinalIgnoreCase) < 0);
 
         Console.WriteLine(
             _failures == 0
@@ -210,7 +242,18 @@ internal static class DiagnosticsBundleTests
             + Environment.NewLine
             + "api key = fixture-openrouter-credential"
             + Environment.NewLine
-            + "sk-or-fixture-super-secret-token",
+            + "sk-or-fixture-super-secret-token"
+            + Environment.NewLine
+            + "prompt=CONFIDENTIAL_PROMPT_FIELD"
+            + Environment.NewLine
+            + "content=CONFIDENTIAL_CONTENT_FIELD"
+            + Environment.NewLine
+            + "email=someone@example.test"
+            + Environment.NewLine
+            + "path="
+            + Environment.GetFolderPath(
+                Environment.SpecialFolder.UserProfile)
+            + "\\Documents\\private.txt",
             Encoding.UTF8);
 
         var updatesRoot =
