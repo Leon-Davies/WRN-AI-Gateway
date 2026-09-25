@@ -9,7 +9,7 @@ It provides:
 - greeting/personalisation;
 - model catalogue preview;
 - changelog;
-- support and settings surfaces;
+- support surfaces;
 - non-destructive toast feedback;
 - optional local WRN hero branding.
 
