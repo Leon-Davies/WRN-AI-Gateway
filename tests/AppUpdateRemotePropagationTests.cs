@@ -146,6 +146,10 @@ internal static class AppUpdateRemotePropagationTests
                         signature,
                         artifactBytes);
 
+            Console.WriteLine(
+                "REMOTE_STAGE_STATUS="
+                + (staged.Status ?? "<null>"));
+
             Check(
                 "real remote release stages",
                 staged.Success
