@@ -17,7 +17,8 @@ foreach ($requiredUi in @(
     "SettingsPage",
     "CredentialConnectButton",
     "CredentialTestButton",
-    "CredentialRemoveButton"
+    "CredentialRemoveButton",
+    "CredentialInfoButton"
 )) {
     if (-not $xaml.Contains($requiredUi)) {
         throw "Missing Phase 4 UI element: $requiredUi"
@@ -30,6 +31,7 @@ foreach ($requiredController in @(
     "ValidateAndSave",
     "TestStored",
     "ShowRemoveOpenRouterCredentialDialog",
+    "ShowOpenRouterInfoDialog",
     'ShowPage("Settings")'
 )) {
     if (-not $controller.Contains($requiredController)) {
@@ -85,7 +87,8 @@ if ($credentials.Contains("Console.WriteLine") -or
     throw "Credential service must not log key-bearing state."
 }
 
-Write-Host "PASS: Settings reduced to connect / test / remove actions"
+Write-Host "PASS: Settings centered around connect / test / remove actions"
+Write-Host "PASS: optional connection details live behind info button"
 Write-Host "PASS: masked native PasswordBox entry"
 Write-Host "PASS: connect / test / remove actions wired"
 Write-Host "PASS: WRN tile routes unconfigured users to Settings"
