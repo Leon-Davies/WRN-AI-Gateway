@@ -120,6 +120,8 @@ Exit: release-blocking round-trip tests pass without any fixed production model 
 
 ## Phase 4 — Credential onboarding and hardened gateway
 
+**Status: in progress. Native per-user OpenRouter onboarding, CurrentUser-DPAPI storage, replace/test/remove flow, and gateway credential-envelope compatibility are implemented and qualified; broader failure taxonomy/retry hardening remains.**
+
 Goal: remove all technical onboarding from colleagues.
 
 Deliverables:
