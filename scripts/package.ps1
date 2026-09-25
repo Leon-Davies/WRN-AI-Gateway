@@ -31,6 +31,9 @@ $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 $framework = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319"
 $setupSource = Join-Path $root "src\WRN.AIGateway.Setup\Setup.cs"
 $setupExe = Join-Path $release "WRN-AI-Gateway-Setup.exe"
+$payloadZip = Join-Path $releaseRoot ("WRN-AI-Gateway-v" + $Version + "-payload.zip")
+if (Test-Path $payloadZip) { Remove-Item $payloadZip -Force }
+Compress-Archive -Path (Join-Path $appDir "*") -DestinationPath $payloadZip -CompressionLevel Optimal
 $icon = Join-Path $root "src\WRN.AIGateway\assets\wrn-ai-gateway.ico"
 
 $compileArgs = @(
@@ -43,7 +46,10 @@ $compileArgs = @(
     "/reference:$framework\System.Core.dll",
     "/reference:$framework\Microsoft.CSharp.dll",
     "/reference:$framework\System.Drawing.dll",
-    "/reference:$framework\System.Windows.Forms.dll"
+    "/reference:$framework\System.Windows.Forms.dll",
+    "/reference:$framework\System.IO.Compression.dll",
+    "/reference:$framework\System.IO.Compression.FileSystem.dll",
+    "/resource:$payloadZip,WRN.AIGateway.Payload.zip"
 )
 if (Test-Path $icon) {
     $compileArgs += "/win32icon:$icon"
@@ -51,6 +57,7 @@ if (Test-Path $icon) {
 $compileArgs += $setupSource
 & $csc $compileArgs
 if ($LASTEXITCODE -ne 0) { throw "Setup compilation failed with exit code $LASTEXITCODE" }
+if (Test-Path $payloadZip) { Remove-Item $payloadZip -Force }
 
 $readme = @(
     "WRN AI Gateway",
