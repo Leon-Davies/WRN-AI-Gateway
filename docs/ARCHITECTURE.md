@@ -33,7 +33,9 @@ WTW mode:
 mode controller → validated WTW configuration → official managed Claude
 
 WRN mode:
-mode controller → local loopback WRN gateway → WTW OpenRouter organisation → eligible model/provider
+mode controller → local loopback WRN gateway → OpenRouter API → eligible ZDR model/provider
+
+The upstream request uses the current user's OpenRouter credential. OpenRouter workspace/organisation policy may add central guardrails where configured; the separate WTW Common AI endpoint is not part of the production inference path.
 mode controller → WRN Claude profile → official managed Claude
 
 Central plane:

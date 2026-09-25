@@ -10,6 +10,9 @@ namespace WRN.AIGateway
         [STAThread]
         public static void Main()
         {
+            if (DiscoveryCommand.TryRun(Environment.GetCommandLineArgs()))
+                return;
+
             var app = new Application();
             app.ShutdownMode = ShutdownMode.OnMainWindowClose;
 

@@ -42,7 +42,9 @@ No Claude configuration writes yet.
 
 Exit: launcher is visually credible and installable without admin.
 
-## Phase 2 — Safe Claude mode discovery
+## Phase 2A — Safe Claude mode discovery
+
+**Status: in progress.**
 
 Goal: establish the minimum safe switching surface on a healthy managed Claude installation.
 
@@ -54,47 +56,14 @@ Deliverables:
 - explicit configuration allowlist proposal;
 - WTW/WRN transition state machine;
 - dry-run transition report;
-- no history writes.
+- no history writes;
+- fail-closed handling for copied/recovery/unsupported Claude installations.
 
-Exit: mode transition plan is empirically grounded.
+Exit: mode transition plan is empirically grounded on the current managed Claude build.
 
-## Phase 3 — Round-trip switching
+## Phase 2B — Signed dynamic model catalogue runtime
 
-Goal: implement WTW ↔ WRN switching safely.
-
-Deliverables:
-
-- transactional configuration activation;
-- rollback;
-- gateway start/stop integration;
-- preflight;
-- repeated round-trip qualification;
-- history preservation qualification;
-- Cowork managed-service qualification.
-
-Exit: release-blocking round-trip tests pass.
-
-## Phase 4 — Credential onboarding and hardened gateway
-
-Goal: remove all technical onboarding from colleagues.
-
-Deliverables:
-
-- hidden key input;
-- validation;
-- DPAPI CurrentUser storage;
-- connection status;
-- replace/test key;
-- normalised error taxonomy;
-- bounded retry;
-- same-model provider failover;
-- friendly failure mapping.
-
-Exit: colleague can install and open WRN Claude without PowerShell/JSON.
-
-## Phase 5 — Signed dynamic model catalogue
-
-Goal: decouple model list from application releases.
+Goal: make the model service remotely maintainable before live switching is enabled.
 
 Deliverables:
 
@@ -104,41 +73,80 @@ Deliverables:
 - dynamic/generative Claude model list path;
 - changelog;
 - recommended model;
-- model qualification metadata.
+- model qualification metadata;
+- no permanent model-name/OpenRouter-ID logic in the mode controller;
+- safe pull-on-launch and periodic refresh.
 
-Exit: model can be added/removed without rebuilding client.
+Exit: a signed catalogue change published remotely can add/remove/update a model on a test client without rebuilding the application.
 
-## Phase 6 — Maintainer publisher
+## Phase 2C — Maintainer publisher
 
-Goal: allow a maintainer to publish catalogue changes from their laptop.
+Goal: allow the maintainer to publish qualified model changes from the maintainer laptop before beta rollout.
 
 Deliverables:
 
 - publisher UI/CLI;
-- model qualification checks;
+- OpenRouter existence and ZDR-route checks;
+- inference/streaming/tool qualification;
+- gateway mapping and Claude/Cowork smoke checks where practical;
 - changelog generation;
 - signing;
 - atomic publication;
 - publication audit metadata.
 
-Exit: model publication is a repeatable two-minute workflow.
+Exit: model publication is a repeatable bounded workflow and a test laptop consumes the new signed catalogue automatically.
 
-## Phase 7 — Application updater
+## Phase 3 — Round-trip switching
 
-Goal: user-space application updates without admin.
+Goal: implement WTW ↔ WRN switching safely against the dynamic catalogue runtime.
 
 Deliverables:
 
-- release manifest;
+- transactional configuration activation;
+- rollback;
+- direct-OpenRouter loopback gateway start/stop integration;
+- preflight;
+- repeated round-trip qualification;
+- history preservation qualification;
+- Cowork managed-service qualification.
+
+Exit: release-blocking round-trip tests pass without any fixed production model list in the switching layer.
+
+## Phase 4 — Credential onboarding and hardened gateway
+
+Goal: remove all technical onboarding from colleagues.
+
+Deliverables:
+
+- hidden per-user OpenRouter key input;
+- validation;
+- DPAPI CurrentUser storage;
+- connection status;
+- replace/test key;
+- normalised error taxonomy;
+- bounded retry;
+- same-model provider failover;
+- request-level ZDR/data-collection enforcement;
+- friendly failure mapping.
+
+Exit: colleague can install and open WRN Claude without PowerShell/JSON.
+
+## Phase 5 — Application updater
+
+Goal: update the launcher/gateway separately from the model catalogue without admin or manual reinstall.
+
+Deliverables:
+
+- signed release manifest;
 - artifact verification;
 - staged update;
 - safe activation;
 - rollback;
 - update UI.
 
-Exit: update can fail without breaking existing installation.
+Exit: an application update can be published from the maintainer environment and can fail without breaking the existing installation.
 
-## Phase 8 — Failure containment qualification
+## Phase 6 — Failure containment qualification
 
 Goal: make non-happy paths fit for non-technical users.
 
@@ -152,7 +160,7 @@ Deliverables:
 
 Exit: expected failures are understandable and recoverable.
 
-## Phase 9 — Small WRN pilot
+## Phase 7 — Small WRN pilot
 
 Goal: validate on multiple real colleague laptops.
 
@@ -163,14 +171,15 @@ Measure:
 - first-run success;
 - switching reliability;
 - history preservation;
+- remote catalogue propagation;
+- application update propagation;
 - model usability;
 - support burden;
-- error frequency;
-- update/catalogue propagation.
+- error frequency.
 
 Do not scale until pilot issues are addressed.
 
-## Phase 10 — Optional integrations
+## Phase 8 — Optional integrations
 
 Only after desktop launcher is stable:
 

@@ -169,3 +169,29 @@ Reason:
 - avoids making Electron, Node.js, Python, WSL, or a developer SDK a user dependency.
 
 The production code may be modernised later if a replacement preserves the same no-admin and no-runtime-install guarantees.
+
+## ADR-017 — WRN inference goes directly to OpenRouter
+
+**Status:** Accepted
+
+WRN mode uses the local WRN compatibility gateway to call the OpenRouter API directly with the current user's OpenRouter credential.
+
+The WTW Common AI endpoint is not a production dependency of WRN AI Gateway.
+
+Where an OpenRouter workspace or organisation policy is available, it may provide an additional policy layer, but the local gateway must independently enforce the required request-level routing policy.
+
+Reason:
+
+The owner confirmed that the beta/service should use the OpenRouter credential path already proved by the native loopback gateway. This keeps the product independent of the separate Common AI access point and preserves the proven Claude/Cowork compatibility layer.
+
+## ADR-018 — Remote model control is a beta prerequisite
+
+**Status:** Accepted
+
+The signed dynamic model catalogue and maintainer publishing path must exist before live WTW ↔ WRN switching is released to beta users.
+
+Production mode-transition logic and gateway policy must not depend on a permanently hard-coded set of model names or upstream OpenRouter IDs.
+
+Reason:
+
+The owner must be able to add, withdraw, re-describe, or change the recommended model from the maintainer laptop without rebuilding or manually reinstalling every colleague's application. Model changes have a materially faster cadence than application releases.

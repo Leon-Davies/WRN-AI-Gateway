@@ -43,6 +43,8 @@ Phase 0 architecture/documentation and the Phase 1 native Windows application sh
 
 The Phase 1 native Windows application shell and no-admin per-user installer are implemented and owner-accepted. The shell remains deliberately non-destructive: WTW/WRN launch actions are placeholders and do not yet write Claude configuration or credentials.
 
+Phase 2A safe Claude discovery is now in progress. This slice is read-only with respect to Claude: it classifies the installed/runtime Claude state, detects whether Claude is running, and produces dry-run transition plans. Live WTW ↔ WRN switching remains disabled until the healthy managed Claude baseline is empirically qualified. The signed dynamic model catalogue and maintainer publisher are beta prerequisites before live switching.
+
 The most important unqualified behaviour is the complete round-trip on a healthy managed Claude installation:
 
 WTW Claude → WRN Claude → WTW Claude → WRN Claude
