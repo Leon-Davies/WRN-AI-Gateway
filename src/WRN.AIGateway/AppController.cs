@@ -34,6 +34,9 @@ namespace WRN.AIGateway
         private CatalogueLoadResult _catalogueLoad;
         private bool _catalogueRefreshInFlight;
         private bool _credentialOperationInFlight;
+        private bool _appUpdateInFlight;
+        private AppUpdateRemoteResult _availableAppUpdate;
+        private AppUpdateRemoteResult _stagedAppUpdate;
         private readonly List<BitmapImage> _heroImages = new List<BitmapImage>();
         private readonly Dictionary<string, ModelInfo> _models = new Dictionary<string, ModelInfo>(StringComparer.OrdinalIgnoreCase);
         private string _greetingTarget = string.Empty;
@@ -68,6 +71,7 @@ namespace WRN.AIGateway
             ConfigureToast();
             RenderCatalogue();
             RefreshCredentialStatus();
+            InitializeAppUpdateStatus();
             ShowPage("Home");
             ConfigureCatalogueRefresh();
         }
@@ -151,6 +155,11 @@ namespace WRN.AIGateway
             Find<Button>("ModelsShortcutButton").Click += delegate { ShowPage("Models"); };
             Find<Button>("UpdatesShortcutButton").Click += delegate { ShowPage("Updates"); };
 
+            Find<Button>("AppUpdateButton").Click += delegate
+            {
+                HandleAppUpdateAction();
+            };
+
             Find<Button>("CredentialConnectButton").Click += delegate
             {
                 ShowOpenRouterCredentialDialog();
@@ -194,6 +203,394 @@ namespace WRN.AIGateway
                     Environment.NewLine +
                     "Please do not include API keys, passwords, or confidential prompt/file contents.");
             };
+        }
+
+        private void InitializeAppUpdateStatus()
+        {
+            AppReleaseIdentity identity;
+            string identityError;
+
+            if (AppReleaseIdentityStore.TryRead(
+                _baseDir,
+                out identity,
+                out identityError))
+            {
+                Find<TextBlock>(
+                    "AppUpdateVersionText").Text =
+                    "Version "
+                    + identity.version;
+            }
+            else
+            {
+                Find<TextBlock>(
+                    "AppUpdateVersionText").Text =
+                    string.Empty;
+            }
+
+            string installRoot;
+            if (!AppUpdateRuntime.TryGetInstalledContext(
+                _baseDir,
+                out installRoot))
+            {
+                Find<TextBlock>(
+                    "AppUpdateStatusText").Text =
+                    "Development build";
+                Find<Button>(
+                    "AppUpdateButton").IsEnabled =
+                    false;
+                return;
+            }
+
+            Find<TextBlock>(
+                "AppUpdateStatusText").Text =
+                "Checking for updates…";
+            Find<Button>(
+                "AppUpdateButton").IsEnabled =
+                false;
+
+            BeginAppUpdateCheck(false);
+        }
+
+        private void HandleAppUpdateAction()
+        {
+            if (_appUpdateInFlight)
+                return;
+
+            if (_stagedAppUpdate != null
+                && _stagedAppUpdate.Staged)
+            {
+                InstallStagedAppUpdate();
+                return;
+            }
+
+            if (_availableAppUpdate != null
+                && _availableAppUpdate.UpdateAvailable)
+            {
+                BeginAppUpdateDownload();
+                return;
+            }
+
+            BeginAppUpdateCheck(true);
+        }
+
+        private void BeginAppUpdateCheck(
+            bool userInitiated)
+        {
+            if (_appUpdateInFlight)
+                return;
+
+            string installRoot;
+            if (!AppUpdateRuntime.TryGetInstalledContext(
+                _baseDir,
+                out installRoot))
+            {
+                return;
+            }
+
+            _appUpdateInFlight = true;
+            Find<Button>(
+                "AppUpdateButton").IsEnabled =
+                false;
+            Find<TextBlock>(
+                "AppUpdateStatusText").Text =
+                "Checking for updates…";
+
+            Task.Run(
+                delegate
+                {
+                    return AppUpdateRuntime
+                        .CheckRemote(_baseDir);
+                })
+                .ContinueWith(
+                    delegate(Task<AppUpdateRemoteResult> task)
+                    {
+                        _window.Dispatcher.BeginInvoke(
+                            new Action(
+                                delegate
+                                {
+                                    _appUpdateInFlight = false;
+
+                                    var result =
+                                        task.Status
+                                            == TaskStatus.RanToCompletion
+                                            ? task.Result
+                                            : null;
+
+                                    ApplyAppUpdateCheckResult(
+                                        result,
+                                        userInitiated);
+                                }));
+                    });
+        }
+
+        private void ApplyAppUpdateCheckResult(
+            AppUpdateRemoteResult result,
+            bool userInitiated)
+        {
+            var button =
+                Find<Button>("AppUpdateButton");
+            var status =
+                Find<TextBlock>(
+                    "AppUpdateStatusText");
+            var version =
+                Find<TextBlock>(
+                    "AppUpdateVersionText");
+
+            button.IsEnabled = true;
+            _stagedAppUpdate = null;
+
+            if (result == null
+                || !result.Success)
+            {
+                _availableAppUpdate = null;
+                status.Text =
+                    FriendlyAppUpdateMessage(
+                        result == null
+                            ? "UPDATE_CHECK_FAILED"
+                            : result.Status);
+                button.Content = "Try again";
+
+                if (userInitiated)
+                {
+                    ShowToast(
+                        "Update check failed",
+                        status.Text);
+                }
+                return;
+            }
+
+            if (!result.InstalledContext)
+            {
+                _availableAppUpdate = null;
+                status.Text =
+                    "Development build";
+                button.IsEnabled = false;
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(
+                result.CurrentVersion)
+                && result.CurrentVersion != "legacy")
+            {
+                version.Text =
+                    "Version "
+                    + result.CurrentVersion;
+            }
+
+            if (result.UpdateAvailable)
+            {
+                _availableAppUpdate = result;
+                status.Text =
+                    string.IsNullOrWhiteSpace(
+                        result.CandidateVersion)
+                        ? "An update is available."
+                        : "Version "
+                            + result.CandidateVersion
+                            + " is available.";
+                button.Content =
+                    "Download update";
+                return;
+            }
+
+            _availableAppUpdate = null;
+            status.Text =
+                "You're up to date.";
+            button.Content =
+                "Check again";
+
+            if (userInitiated)
+            {
+                ShowToast(
+                    "Up to date",
+                    "WRN AI Gateway is up to date.");
+            }
+        }
+
+        private void BeginAppUpdateDownload()
+        {
+            if (_appUpdateInFlight)
+                return;
+
+            _appUpdateInFlight = true;
+            var button =
+                Find<Button>("AppUpdateButton");
+            var status =
+                Find<TextBlock>(
+                    "AppUpdateStatusText");
+
+            button.IsEnabled = false;
+            status.Text =
+                "Downloading update…";
+
+            Task.Run(
+                delegate
+                {
+                    return AppUpdateRuntime
+                        .DownloadAndStage(
+                            _baseDir);
+                })
+                .ContinueWith(
+                    delegate(Task<AppUpdateRemoteResult> task)
+                    {
+                        _window.Dispatcher.BeginInvoke(
+                            new Action(
+                                delegate
+                                {
+                                    _appUpdateInFlight = false;
+                                    button.IsEnabled = true;
+
+                                    var result =
+                                        task.Status
+                                            == TaskStatus.RanToCompletion
+                                            ? task.Result
+                                            : null;
+
+                                    if (result == null
+                                        || !result.Success)
+                                    {
+                                        _stagedAppUpdate = null;
+                                        status.Text =
+                                            FriendlyAppUpdateMessage(
+                                                result == null
+                                                    ? "UPDATE_DOWNLOAD_FAILED"
+                                                    : result.Status);
+                                        button.Content =
+                                            "Try again";
+                                        ShowToast(
+                                            "Update not downloaded",
+                                            status.Text);
+                                        return;
+                                    }
+
+                                    if (!result.Staged)
+                                    {
+                                        _availableAppUpdate = null;
+                                        _stagedAppUpdate = null;
+                                        status.Text =
+                                            "You're up to date.";
+                                        button.Content =
+                                            "Check again";
+                                        return;
+                                    }
+
+                                    _availableAppUpdate = null;
+                                    _stagedAppUpdate = result;
+                                    status.Text =
+                                        string.IsNullOrWhiteSpace(
+                                            result.CandidateVersion)
+                                            ? "Update ready to install."
+                                            : "Version "
+                                                + result.CandidateVersion
+                                                + " is ready to install.";
+                                    button.Content =
+                                        "Install update";
+                                }));
+                    });
+        }
+
+        private void InstallStagedAppUpdate()
+        {
+            if (_stagedAppUpdate == null
+                || !_stagedAppUpdate.Staged)
+            {
+                return;
+            }
+
+            var status =
+                Find<TextBlock>(
+                    "AppUpdateStatusText");
+            var button =
+                Find<Button>("AppUpdateButton");
+
+            if (Process.GetProcessesByName(
+                "claude").Length > 0)
+            {
+                status.Text =
+                    "Close Claude before installing the update.";
+                ShowToast(
+                    "Close Claude",
+                    "Close Claude, then install the update.");
+                return;
+            }
+
+            try
+            {
+                GatewayLifecycle.StopOwned(
+                    _baseDir,
+                    _stateRoot);
+            }
+            catch
+            {
+                status.Text =
+                    "Close WRN Claude and try again.";
+                ShowToast(
+                    "Update paused",
+                    status.Text);
+                return;
+            }
+
+            var activation =
+                AppUpdateRuntime.StartActivation(
+                    _baseDir,
+                    _stagedAppUpdate
+                        .CandidateAppRoot);
+
+            if (!activation.Started)
+            {
+                status.Text =
+                    FriendlyAppUpdateMessage(
+                        activation.Status);
+                button.Content =
+                    "Install update";
+                ShowToast(
+                    "Update not installed",
+                    status.Text);
+                return;
+            }
+
+            button.IsEnabled = false;
+            status.Text =
+                "Installing update…";
+
+            _window.Close();
+        }
+
+        private static string FriendlyAppUpdateMessage(
+            string status)
+        {
+            var value =
+                status
+                ?? string.Empty;
+
+            if (value == "UPDATE_NETWORK_UNAVAILABLE"
+                || value == "UPDATE_CHECK_FAILED")
+            {
+                return "Couldn't check for updates. Try again.";
+            }
+
+            if (value == "UPDATE_DEFERRED_CLAUDE_RUNNING")
+                return "Close Claude before installing the update.";
+
+            if (value == "UPDATE_DEFERRED_GATEWAY_RUNNING")
+                return "Close WRN Claude and try again.";
+
+            if (value == "UPDATE_DEFERRED_RECOVERY_PENDING")
+                return "WRN AI Gateway needs to finish recovery before updating.";
+
+            if (value.Contains("SIGNATURE")
+                || value.Contains("HASH")
+                || value.Contains("MANIFEST")
+                || value.Contains("IDENTITY")
+                || value.Contains("ARCHIVE")
+                || value.Contains("ROLLBACK"))
+            {
+                return "The update couldn't be verified. Your current version was kept.";
+            }
+
+            if (value.Contains("HELPER"))
+                return "The update couldn't start. Try again.";
+
+            return "The update couldn't be completed. Your current version was kept.";
         }
 
         private void ApplyPersonalisation()
