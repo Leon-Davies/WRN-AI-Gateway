@@ -45,18 +45,35 @@ namespace WRN.AIGateway
             string baseDir,
             out string installRoot)
         {
-            installRoot = null;
-            if (string.IsNullOrWhiteSpace(baseDir))
-                return false;
-
             var expectedRoot = Path.GetFullPath(
                 Path.Combine(
                     Environment.GetFolderPath(
                         Environment.SpecialFolder.LocalApplicationData),
                     "WRN-AI-Gateway"));
 
+            return TryGetInstalledContext(
+                baseDir,
+                expectedRoot,
+                out installRoot);
+        }
+
+        internal static bool TryGetInstalledContext(
+            string baseDir,
+            string expectedRoot,
+            out string installRoot)
+        {
+            installRoot = null;
+            if (string.IsNullOrWhiteSpace(baseDir)
+                || string.IsNullOrWhiteSpace(expectedRoot))
+            {
+                return false;
+            }
+
+            var root =
+                Path.GetFullPath(expectedRoot);
+
             var expectedCurrent = Path.GetFullPath(
-                Path.Combine(expectedRoot, "current"))
+                Path.Combine(root, "current"))
                 .TrimEnd(Path.DirectorySeparatorChar)
                 + Path.DirectorySeparatorChar;
 
@@ -72,7 +89,7 @@ namespace WRN.AIGateway
                 return false;
             }
 
-            installRoot = expectedRoot;
+            installRoot = root;
             return true;
         }
 
