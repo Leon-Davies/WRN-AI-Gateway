@@ -75,6 +75,25 @@ namespace WRN.AIGateway.Updater
                         false,
                         false,
                         candidateAppRoot);
+                    TryLaunchHealthyCurrent(
+                        installRoot,
+                        launch);
+                    Environment.ExitCode = 20;
+                    return;
+                }
+
+                if (Process.GetProcessesByName(
+                    "WRN-AI-Gateway-Gateway").Length > 0)
+                {
+                    WriteAudit(
+                        installRoot,
+                        "UPDATE_DEFERRED_GATEWAY_RUNNING",
+                        false,
+                        false,
+                        candidateAppRoot);
+                    TryLaunchHealthyCurrent(
+                        installRoot,
+                        launch);
                     Environment.ExitCode = 20;
                     return;
                 }
@@ -89,6 +108,9 @@ namespace WRN.AIGateway.Updater
                         false,
                         false,
                         candidateAppRoot);
+                    TryLaunchHealthyCurrent(
+                        installRoot,
+                        launch);
                     Environment.ExitCode = 21;
                     return;
                 }
@@ -271,6 +293,31 @@ namespace WRN.AIGateway.Updater
                 if (process != null)
                     process.Dispose();
             }
+        }
+
+        private static void TryLaunchHealthyCurrent(
+            string installRoot,
+            bool launch)
+        {
+            if (!launch)
+                return;
+
+            var current =
+                Path.Combine(
+                    installRoot,
+                    "current");
+
+            if (!RunSelfCheck(
+                current,
+                30000))
+            {
+                return;
+            }
+
+            TryLaunch(
+                Path.Combine(
+                    current,
+                    "WRN-AI-Gateway.exe"));
         }
 
         private static void TryLaunch(
