@@ -80,7 +80,7 @@ try {
         "WriteAnthropicFailure",
         "response.IsSuccessStatusCode",
         "GatewayFailureSanitizer.TryMapJsonError",
-        "GatewayFailureSanitizer.TrySanitizeSseDataLine"
+        "TrySanitizeSseDataLine"
     )) {
         if (-not $gateway.Contains($requiredGateway)) {
             throw "Gateway friendly-failure primitive is missing: $requiredGateway"
