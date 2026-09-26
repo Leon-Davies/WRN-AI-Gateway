@@ -134,8 +134,7 @@ if ($TargetRelease -lt 0) {
 
 if ($TargetRelease -gt 0) {
     if ($TargetRelease -le $currentRelease) {
-        throw ("TargetRelease must be greater than the currently published release "
-            + $currentRelease + ".")
+        throw ("TargetRelease must be greater than the currently published release {0}." -f $currentRelease)
     }
     $nextRelease = $TargetRelease
 }
