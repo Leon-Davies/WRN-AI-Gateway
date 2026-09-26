@@ -46,6 +46,40 @@ internal static class CatalogueRuntimeTests
         Check("all catalogue models require ZDR",
             v1 != null && v1.models.All(m => m.zdrRequired));
 
+        var legacyAliases = v1.models
+            .Select(m => m.claudeAlias)
+            .ToArray();
+        foreach (var model in v1.models)
+        {
+            if (model.claudeAlias.StartsWith(
+                "anthropic/",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                model.claudeAlias =
+                    model.claudeAlias.Substring(
+                        "anthropic/".Length);
+            }
+        }
+        Check(
+            "current Claude-compatible WRN aliases accepted",
+            CatalogueValidator.Validate(v1, out error)
+            && v1.models.All(m =>
+                m.claudeAlias.StartsWith(
+                    "claude-wrn-",
+                    StringComparison.OrdinalIgnoreCase)));
+
+        v1.models[0].claudeAlias = "openai/not-a-wrn-alias";
+        Check(
+            "unscoped arbitrary alias rejected",
+            !CatalogueValidator.Validate(v1, out error)
+            && error == "CATALOGUE_ALIAS_INVALID");
+
+        for (var i = 0; i < v1.models.Length; i++)
+            v1.models[i].claudeAlias = legacyAliases[i];
+        Check(
+            "legacy WRN aliases remain accepted during migration",
+            CatalogueValidator.Validate(v1, out error));
+
         var tampered = (byte[])v1Bytes.Clone();
         tampered[tampered.Length / 2] ^= 0x01;
         CatalogueDocument ignored;
