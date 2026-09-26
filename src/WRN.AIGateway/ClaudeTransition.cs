@@ -399,7 +399,9 @@ namespace WRN.AIGateway
                 { "inferenceModels", visible },
                 { "inferenceProvider", "gateway" },
                 { "inferenceCredentialKind", "static" },
-                { "chatTabEnabled", true }
+                { "chatTabEnabled", true },
+                { "coworkTabEnabled", true },
+                { "isClaudeCodeForDesktopEnabled", true }
             };
         }
 
