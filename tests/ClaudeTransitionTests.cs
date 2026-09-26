@@ -515,6 +515,12 @@ internal static class ClaudeTransitionTests
             "profile bearer auth scheme set",
             Convert.ToString(appliedProfile["inferenceGatewayAuthScheme"])
                 == "bearer");
+        Check(
+            "profile enables chat cowork and code surfaces",
+            Convert.ToBoolean(appliedProfile["chatTabEnabled"])
+            && Convert.ToBoolean(appliedProfile["coworkTabEnabled"])
+            && Convert.ToBoolean(
+                appliedProfile["isClaudeCodeForDesktopEnabled"]));
 
         var appliedModels =
             ReadObjectArray(appliedProfile["inferenceModels"]);
