@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
-    "release":  5,
-    "publishedAt":  "2026-09-26T10:10:23.7964572+01:00",
+    "release":  6,
+    "publishedAt":  "2026-09-26T11:21:57.9863949+01:00",
     "minimumAppVersion":  "0.2.0",
     "defaultModelKey":  "gpt6-luna",
     "benchmarkSnapshot":  "2026-09-25",
@@ -112,7 +112,7 @@
                        "label":  "DeepSeek V4.1 Flash",
                        "maker":  "DeepSeek",
                        "upstreamModel":  "deepseek/deepseek-v4.1-flash",
-                       "claudeAlias":  "claude-wrn-deepseek",
+                       "claudeAlias":  "claude-wrn-m004",
                        "visible":  true,
                        "recommended":  false,
                        "status":  "candidate",
@@ -142,6 +142,11 @@
                    }
                ],
     "changelog":  [
+                      {
+                          "date":  "2026-09-26",
+                          "title":  "Improved DeepSeek compatibility",
+                          "body":  "DeepSeek V4.1 Flash now loads cleanly in WRN Claude without a configuration warning."
+                      },
                       {
                           "date":  "2026-09-26",
                           "title":  "Claude Desktop model compatibility",
