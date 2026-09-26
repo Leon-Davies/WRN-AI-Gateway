@@ -2,9 +2,101 @@ param(
     [string]$Version = "0.1.0-dev",
     [int]$AppRelease = 0,
     [string]$BrandAssetDirectory = "",
-    [switch]$RequireBranding
+    [switch]$RequireBranding,
+    [string]$CodeSigningThumbprint = "",
+    [string]$TimestampServer = "",
+    [switch]$RequireCodeSigning
 )
 $ErrorActionPreference = "Stop"
+
+$codeSigningRequested =
+    $RequireCodeSigning -or
+    -not [string]::IsNullOrWhiteSpace($CodeSigningThumbprint)
+
+function Resolve-WRNCodeSigningCertificate {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Thumbprint
+    )
+
+    $normalized = ($Thumbprint -replace "\s", "").ToUpperInvariant()
+    if ([string]::IsNullOrWhiteSpace($normalized)) {
+        throw "A code-signing certificate thumbprint is required."
+    }
+
+    foreach ($store in @(
+        "Cert:\CurrentUser\My",
+        "Cert:\LocalMachine\My"
+    )) {
+        $candidate = @(
+            Get-ChildItem $store -ErrorAction SilentlyContinue |
+            Where-Object {
+                $_.Thumbprint -eq $normalized -and
+                $_.HasPrivateKey
+            }
+        ) | Select-Object -First 1
+
+        if ($candidate) {
+            $ekuOids = @(
+                $candidate.EnhancedKeyUsageList |
+                ForEach-Object { $_.ObjectId.Value }
+            )
+
+            if ($ekuOids -notcontains "1.3.6.1.5.5.7.3.3") {
+                throw "The requested certificate is not valid for code signing."
+            }
+
+            $now = Get-Date
+            if ($candidate.NotBefore -gt $now -or
+                $candidate.NotAfter -le $now) {
+                throw "The requested code-signing certificate is not currently valid."
+            }
+
+            return $candidate
+        }
+    }
+
+    throw "The requested code-signing certificate with private key was not found."
+}
+
+function Sign-WRNExecutable {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [Parameter(Mandatory = $true)]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$Certificate,
+        [Parameter(Mandatory = $true)]
+        [string]$TimestampUrl
+    )
+
+    if (-not (Test-Path $Path)) {
+        throw "Code-signing target is missing: $Path"
+    }
+
+    $result = Set-AuthenticodeSignature -FilePath $Path -Certificate $Certificate -HashAlgorithm SHA256 -TimestampServer $TimestampUrl
+    if ($result.Status -ne "Valid") {
+        throw ("Authenticode signing failed for {0}: {1}" -f $Path, $result.Status)
+    }
+
+    $verified = Get-AuthenticodeSignature -FilePath $Path
+    if ($verified.Status -ne "Valid" -or
+        $verified.SignerCertificate.Thumbprint -ne $Certificate.Thumbprint) {
+        throw "Authenticode verification failed after signing: $Path"
+    }
+}
+
+$signingCertificate = $null
+if ($codeSigningRequested) {
+    if ([string]::IsNullOrWhiteSpace($CodeSigningThumbprint)) {
+        throw "A code-signing certificate thumbprint is required when code signing is enabled."
+    }
+
+    if ([string]::IsNullOrWhiteSpace($TimestampServer)) {
+        throw "A timestamp server is required when code signing is enabled."
+    }
+
+    $signingCertificate = Resolve-WRNCodeSigningCertificate -Thumbprint $CodeSigningThumbprint
+}
 
 $root = Split-Path -Parent $PSScriptRoot
 $dist = Join-Path $root "dist"
@@ -40,6 +132,16 @@ $identityJson = $identity | ConvertTo-Json
     ($identityJson + [Environment]::NewLine),
     (New-Object Text.UTF8Encoding($false)))
 
+if ($codeSigningRequested) {
+    foreach ($targetName in @(
+        "WRN-AI-Gateway.exe",
+        "WRN-AI-Gateway-Gateway.exe",
+        "WRN-AI-Gateway-Updater.exe"
+    )) {
+        Sign-WRNExecutable -Path (Join-Path $appDir $targetName) -Certificate $signingCertificate -TimestampUrl $TimestampServer
+    }
+}
+
 $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 $framework = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319"
 $setupSource = Join-Path $root "src\WRN.AIGateway.Setup\Setup.cs"
@@ -71,6 +173,14 @@ $compileArgs += $setupSource
 & $csc $compileArgs
 if ($LASTEXITCODE -ne 0) { throw "Setup compilation failed with exit code $LASTEXITCODE" }
 if (Test-Path $payloadZip) { Remove-Item $payloadZip -Force }
+
+if ($codeSigningRequested) {
+    Sign-WRNExecutable -Path $setupExe -Certificate $signingCertificate -TimestampUrl $TimestampServer
+}
+
+if ($RequireCodeSigning -and -not $codeSigningRequested) {
+    throw "Required Authenticode signing was not performed."
+}
 
 $readme = @(
     "WRN AI Gateway",
