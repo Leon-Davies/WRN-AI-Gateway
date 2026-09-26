@@ -2,6 +2,8 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.IO.Compression;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
@@ -16,57 +18,52 @@ namespace WRN.AIGateway.Setup
         public SetupForm()
         {
             Text = "WRN AI Gateway Setup";
-            Width = 560;
-            Height = 380;
+            Width = 540;
+            Height = 310;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
             BackColor = Color.FromArgb(247, 245, 248);
             Font = new Font("Segoe UI", 9F);
 
-            var header = new Panel { Dock = DockStyle.Top, Height = 88, BackColor = Color.FromArgb(75, 20, 100) };
+            var header = new Panel { Dock = DockStyle.Top, Height = 76, BackColor = Color.FromArgb(75, 20, 100) };
             Controls.Add(header);
 
             var brand = new Label {
                 Text = "W", ForeColor = Color.FromArgb(75, 20, 100), BackColor = Color.White,
                 Font = new Font("Segoe UI", 14F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleCenter,
-                Width = 38, Height = 38, Left = 24, Top = 25
+                Width = 34, Height = 34, Left = 24, Top = 21
             };
             header.Controls.Add(brand);
 
             header.Controls.Add(new Label {
-                Text = "WRN AI Gateway", ForeColor = Color.White, Font = new Font("Segoe UI", 17F, FontStyle.Bold),
-                AutoSize = true, Left = 76, Top = 23
+                Text = "WRN AI Gateway", ForeColor = Color.White, Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+                AutoSize = true, Left = 70, Top = 20
             });
-            header.Controls.Add(new Label {
-                Text = "Simple model access for Willis Research Network", ForeColor = Color.FromArgb(229, 215, 235),
-                Font = new Font("Segoe UI", 9F), AutoSize = true, Left = 78, Top = 54
-            });
-
             Controls.Add(new Label {
                 Text = "Install WRN AI Gateway", ForeColor = Color.FromArgb(43, 35, 48),
-                Font = new Font("Segoe UI", 14F, FontStyle.Bold), AutoSize = true, Left = 28, Top = 112
+                Font = new Font("Segoe UI", 14F, FontStyle.Bold), AutoSize = true, Left = 28, Top = 96
             });
             Controls.Add(new Label {
-                Text = "This installs WRN AI Gateway for your Windows account only.\r\nNo administrator rights are required and your Claude history is not changed.",
+                Text = "Install for your Windows account.",
                 ForeColor = Color.FromArgb(96, 87, 101), Font = new Font("Segoe UI", 9.5F),
-                AutoSize = true, Left = 30, Top = 148
+                AutoSize = true, Left = 30, Top = 132
             });
 
             _progress = new ProgressBar {
-                Left = 30, Top = 211, Width = 486, Height = 8,
+                Left = 30, Top = 170, Width = 466, Height = 8,
                 Style = ProgressBarStyle.Continuous, Minimum = 0, Maximum = 100, Value = 0
             };
             Controls.Add(_progress);
 
             _status = new Label {
-                Text = "Ready to install", ForeColor = Color.FromArgb(117, 107, 121),
-                AutoSize = true, Left = 30, Top = 230
+                Text = "Ready", ForeColor = Color.FromArgb(117, 107, 121),
+                AutoSize = true, Left = 30, Top = 189
             };
             Controls.Add(_status);
 
             _installButton = new Button {
-                Text = "Install", Width = 116, Height = 40, Left = 400, Top = 278,
+                Text = "Install", Width = 116, Height = 40, Left = 380, Top = 226,
                 BackColor = Color.FromArgb(82, 24, 109), ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 9.5F, FontStyle.Bold), Cursor = Cursors.Hand
             };
@@ -82,10 +79,19 @@ namespace WRN.AIGateway.Setup
             try { Install(); }
             catch (Exception ex)
             {
-                _status.Text = "Installation failed";
+                _status.Text = "Couldn't install";
+                var message =
+                    ex is InvalidOperationException
+                    && ex.Message.IndexOf(
+                        "currently open",
+                        StringComparison.OrdinalIgnoreCase) >= 0
+                        ? "Close WRN AI Gateway, then try again."
+                        : "Couldn't install WRN AI Gateway. Try again or contact WRN AI support.";
                 MessageBox.Show(
-                    "WRN AI Gateway could not be installed.\r\n\r\n" + ex.Message,
-                    "WRN AI Gateway Setup", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    message,
+                    "WRN AI Gateway",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
                 _installButton.Enabled = true;
             }
         }
@@ -94,7 +100,9 @@ namespace WRN.AIGateway.Setup
         {
             var source = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "app");
             var sourceExe = Path.Combine(source, "WRN-AI-Gateway.exe");
-            if (!File.Exists(sourceExe))
+            var hasExternalPayload = File.Exists(sourceExe);
+            var hasEmbeddedPayload = HasEmbeddedPayload();
+            if (!hasExternalPayload && !hasEmbeddedPayload)
                 throw new InvalidOperationException("The application files are missing from this setup package.");
 
             var installRoot = Path.Combine(
@@ -107,13 +115,14 @@ namespace WRN.AIGateway.Setup
             if (running.Length > 0)
                 throw new InvalidOperationException("WRN AI Gateway is currently open. Close it, then click Install again.");
 
-            _status.Text = "Preparing installation...";
+            _status.Text = "Preparing...";
             _progress.Value = 15;
             Application.DoEvents();
             Directory.CreateDirectory(installRoot);
-            CopyDirectory(source, staging);
+            if (hasExternalPayload) CopyDirectory(source, staging);
+            else ExtractEmbeddedPayload(staging);
 
-            _status.Text = "Installing application...";
+            _status.Text = "Installing...";
             _progress.Value = 55;
             Application.DoEvents();
 
@@ -122,18 +131,60 @@ namespace WRN.AIGateway.Setup
             if (Directory.Exists(current)) Directory.Move(current, previous);
             Directory.Move(staging, current);
 
-            _status.Text = "Creating shortcuts...";
+            _status.Text = "Finishing...";
             _progress.Value = 80;
             Application.DoEvents();
             CreateShortcuts(Path.Combine(current, "WRN-AI-Gateway.exe"));
 
             _progress.Value = 100;
-            _status.Text = "Installed successfully";
+            _status.Text = "Installed";
             _installButton.Text = "Open";
             _installButton.Enabled = true;
             _installButton.Click -= InstallButtonClick;
             _installButton.Click += delegate { Launch(Path.Combine(current, "WRN-AI-Gateway.exe")); };
             Launch(Path.Combine(current, "WRN-AI-Gateway.exe"));
+        }
+
+        private const string PayloadResourceName = "WRN.AIGateway.Payload.zip";
+
+        private static bool HasEmbeddedPayload()
+        {
+            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(PayloadResourceName))
+                return stream != null;
+        }
+
+        private static void ExtractEmbeddedPayload(string destination)
+        {
+            Directory.CreateDirectory(destination);
+            var root = Path.GetFullPath(destination) + Path.DirectorySeparatorChar;
+
+            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(PayloadResourceName))
+            {
+                if (stream == null)
+                    throw new InvalidOperationException("The embedded application payload is missing.");
+
+                using (var archive = new ZipArchive(stream, ZipArchiveMode.Read, false))
+                {
+                    foreach (var entry in archive.Entries)
+                    {
+                        var relative = entry.FullName.Replace('/', Path.DirectorySeparatorChar);
+                        var target = Path.GetFullPath(Path.Combine(destination, relative));
+                        if (!target.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                            throw new InvalidOperationException("The embedded application payload is invalid.");
+
+                        if (string.IsNullOrEmpty(entry.Name))
+                        {
+                            Directory.CreateDirectory(target);
+                            continue;
+                        }
+
+                        Directory.CreateDirectory(Path.GetDirectoryName(target));
+                        using (var input = entry.Open())
+                        using (var output = File.Create(target))
+                            input.CopyTo(output);
+                    }
+                }
+            }
         }
 
         private static void CopyDirectory(string source, string destination)

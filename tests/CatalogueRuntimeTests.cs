@@ -46,6 +46,73 @@ internal static class CatalogueRuntimeTests
         Check("all catalogue models require ZDR",
             v1 != null && v1.models.All(m => m.zdrRequired));
 
+        var legacyAliases = v1.models
+            .Select(m => m.claudeAlias)
+            .ToArray();
+        foreach (var model in v1.models)
+        {
+            if (model.claudeAlias.StartsWith(
+                "anthropic/",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                model.claudeAlias =
+                    model.claudeAlias.Substring(
+                        "anthropic/".Length);
+            }
+        }
+        Check(
+            "current Claude-compatible WRN aliases accepted",
+            CatalogueValidator.Validate(v1, out error)
+            && v1.models.All(m =>
+                m.claudeAlias.StartsWith(
+                    "claude-wrn-",
+                    StringComparison.OrdinalIgnoreCase)));
+
+        v1.models[0].claudeAlias = "openai/not-a-wrn-alias";
+        Check(
+            "unscoped arbitrary alias rejected",
+            !CatalogueValidator.Validate(v1, out error)
+            && error == "CATALOGUE_ALIAS_INVALID");
+
+        for (var i = 0; i < v1.models.Length; i++)
+            v1.models[i].claudeAlias = legacyAliases[i];
+        Check(
+            "legacy WRN aliases remain accepted during migration",
+            CatalogueValidator.Validate(v1, out error));
+
+        var originalRelease = v1.release;
+        var deepSeek = v1.models.First(m =>
+            m.key == "deepseek-v41-flash");
+        var originalDeepSeekAlias = deepSeek.claudeAlias;
+
+        v1.release = 6;
+        deepSeek.claudeAlias = "claude-wrn-deepseek";
+        Check(
+            "release 6 rejects Claude-incompatible provider route names",
+            !CatalogueValidator.Validate(v1, out error)
+            && error == "CATALOGUE_ALIAS_CLAUDE_DESKTOP_INCOMPATIBLE");
+
+        deepSeek.claudeAlias = "claude-wrn-m004";
+        Check(
+            "release 6 accepts provider-neutral opaque route IDs",
+            CatalogueValidator.Validate(v1, out error));
+
+        var originalMinimumAppVersion = v1.minimumAppVersion;
+        v1.minimumAppVersion = "0.6.0";
+        Check(
+            "phase 6 catalogue compatibility version accepted",
+            CatalogueValidator.Validate(v1, out error));
+
+        v1.minimumAppVersion = "0.6.1";
+        Check(
+            "future catalogue compatibility version rejected",
+            !CatalogueValidator.Validate(v1, out error)
+            && error == "CATALOGUE_APP_TOO_OLD");
+
+        v1.minimumAppVersion = originalMinimumAppVersion;
+        v1.release = originalRelease;
+        deepSeek.claudeAlias = originalDeepSeekAlias;
+
         var tampered = (byte[])v1Bytes.Clone();
         tampered[tampered.Length / 2] ^= 0x01;
         CatalogueDocument ignored;
@@ -83,6 +150,29 @@ internal static class CatalogueRuntimeTests
         var reuse = store.AcceptCandidate(mutatedV2, v2Signature);
         Check("same-release tamper rejected before reuse",
             !reuse.Success && reuse.Status == "CATALOGUE_SIGNATURE_INVALID");
+
+        var invalidCurrentDir = Path.Combine(
+            root,
+            "releases",
+            "00000003");
+        Directory.CreateDirectory(invalidCurrentDir);
+        File.WriteAllBytes(
+            Path.Combine(invalidCurrentDir, "catalogue.json"),
+            mutatedV2);
+        File.WriteAllText(
+            Path.Combine(invalidCurrentDir, "catalogue.sig"),
+            v2Signature);
+        File.WriteAllText(
+            Path.Combine(root, "current.txt"),
+            "3");
+        File.WriteAllText(
+            Path.Combine(root, "previous.txt"),
+            "2");
+
+        var lastKnownGood = store.LoadBestAvailable();
+        Check("invalid current falls back to newest valid previous release",
+            lastKnownGood.Catalogue.release == 2
+            && lastKnownGood.Source == "cached-previous");
 
         Console.WriteLine(_failures == 0 ? "ALL_CATALOGUE_TESTS_PASS" : "CATALOGUE_TESTS_FAILED=" + _failures);
         return _failures == 0 ? 0 : 1;

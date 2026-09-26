@@ -5,6 +5,8 @@ param(
     [string]$Title = "WRN AI Gateway update",
     [string]$Notes = "Improvements and reliability updates.",
 
+    [int]$TargetRelease = 0,
+
     [switch]$Publish
 )
 
@@ -126,7 +128,20 @@ if (Test-Path -LiteralPath $currentManifestPath) {
     $currentRelease = [int]$current.release
 }
 
-$nextRelease = $currentRelease + 1
+if ($TargetRelease -lt 0) {
+    throw "TargetRelease must be zero (automatic) or a positive release number."
+}
+
+if ($TargetRelease -gt 0) {
+    if ($TargetRelease -le $currentRelease) {
+        throw ("TargetRelease must be greater than the currently published release {0}." -f $currentRelease)
+    }
+    $nextRelease = $TargetRelease
+}
+else {
+    $nextRelease = $currentRelease + 1
+}
+
 $previewDir = Join-Path $previewRoot ("release-" + $nextRelease.ToString("D8"))
 
 if (Test-Path -LiteralPath $previewDir) {
@@ -310,7 +325,7 @@ Invoke-Git @("-C", $publisherRepoGit, "push", "origin", $branch) | Out-Null
 
 $remoteManifest = Join-Path $previewDir "remote-release.json"
 $remoteSignature = Join-Path $previewDir "remote-release.sig"
-$remoteArtifact = Join-Path $previewDir "remote-" + $artifactName
+$remoteArtifact = Join-Path $previewDir ("remote-" + $artifactName)
 $remoteVerified = $false
 
 for ($attempt = 1; $attempt -le 10; $attempt++) {

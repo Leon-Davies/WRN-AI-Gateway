@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 
 namespace WRN.AIGateway
@@ -88,7 +89,7 @@ namespace WRN.AIGateway
     internal static class CatalogueTrust
     {
         public const int SupportedSchemaVersion = 1;
-        public static readonly Version AppVersion = new Version(0, 2, 0);
+        public static readonly Version AppVersion = new Version(0, 6, 0);
 
         public const string PublicKeyXml =
             "<RSAKeyValue><Modulus>uLH0GnXRTXazZ00EViCD7sqlWKavj3ikbsbnjz66cgSgvlAJ7kBrj5LiXYHxmo4APiIFGmMF3jOhrP1jwboOIk7SV/U2tpth/4ughGKFf3UbOfojyfU3/lVQTKj76c+8l30HSc48+CjsPA+rFFGSJhJEcvVW0PpCnDWuE+sEqgCjWqW1RF+1eFAhsQTxN9ZK1jtk5OtglanFuqSjZTRiv35kCQMtaDRg+wzY+Fz6Q9qLf/kbiwCPjMYq9fsCC3m7d6UXd2BY18TIBfLBrInfJo8kRp7KPboG7KeUcfjKIGORPJUJpj7grrx+d6Ki+gXTxPFdgJO5pfB8y7GO/JVtGMrQ532T9WT5mkEF/zcjsM5T37rtrj6ehSDgc+r/hQvBNkVl/7qkQ4x6dk8URdoH0+YiyZWVaejvS9hwjYGB2OGahq7qmFqIyXcR4RIEVykp+13PDVmgnGtY48j4/ruEFPJxPVkihIuMmcZdT2dC1WBJYWum3G8mqhj9IhJ9cP1Z</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>";
@@ -175,6 +176,12 @@ namespace WRN.AIGateway
 
     internal static class CatalogueValidator
     {
+        private static readonly Regex ClaudeDesktopRejectedRoutePattern =
+            new Regex(
+                @"ark-code|astron|command-r|deepseek|doubao|gemini|gemma|glm|gpt|grok|hermes|hy3|kimi|lfm|\bling\b|llama|longcat|mimo|minimax|mistral|mixtral|moonshot|nemotron|openai|phi-|qianfan|qwen|tc-code|\bunic\b|yi-|stepfun|step-3|seed-|bytedance|hunyuan|granite|amazon\.nova|nova-|devstral|ministral|ernie|codex|arcee|trinity|abab|phi\d|\bk2\.|\bm2\.|jamba|arctic|solar|mercury|zamba|kat-coder|\bds-|dpsk",
+                RegexOptions.IgnoreCase
+                | RegexOptions.CultureInvariant);
+
         public static bool Validate(CatalogueDocument catalogue, out string error)
         {
             error = null;
@@ -222,8 +229,23 @@ namespace WRN.AIGateway
                 if (!upstream.Add(model.upstreamModel))
                     return Fail("CATALOGUE_UPSTREAM_DUPLICATE", out error);
 
-                if (!model.claudeAlias.StartsWith("anthropic/claude-wrn-", StringComparison.OrdinalIgnoreCase))
+                var legacyAlias = model.claudeAlias.StartsWith(
+                    "anthropic/claude-wrn-",
+                    StringComparison.OrdinalIgnoreCase);
+                var desktopCompatibleAlias = model.claudeAlias.StartsWith(
+                    "claude-wrn-",
+                    StringComparison.OrdinalIgnoreCase);
+                if (!legacyAlias && !desktopCompatibleAlias)
                     return Fail("CATALOGUE_ALIAS_INVALID", out error);
+
+                if (catalogue.release >= 6
+                    && ClaudeDesktopRejectedRoutePattern.IsMatch(
+                        model.claudeAlias))
+                {
+                    return Fail(
+                        "CATALOGUE_ALIAS_CLAUDE_DESKTOP_INCOMPATIBLE",
+                        out error);
+                }
 
                 if (!model.zdrRequired)
                     return Fail("CATALOGUE_ZDR_REQUIRED_FALSE", out error);
@@ -292,19 +314,36 @@ namespace WRN.AIGateway
                 "bundled");
 
             var currentRelease = ReadPointer("current.txt");
-            var current = currentRelease.HasValue ? LoadRelease(currentRelease.Value, "cached-current") : null;
-
-            if (current != null && (bundled == null || current.Catalogue.release >= bundled.Catalogue.release))
-                return current;
-            if (bundled != null)
-                return bundled;
+            var current = currentRelease.HasValue
+                ? LoadRelease(currentRelease.Value, "cached-current")
+                : null;
 
             var previousRelease = ReadPointer("previous.txt");
-            var previous = previousRelease.HasValue ? LoadRelease(previousRelease.Value, "cached-previous") : null;
-            if (previous != null)
-                return previous;
+            var previous = previousRelease.HasValue
+                ? LoadRelease(previousRelease.Value, "cached-previous")
+                : null;
 
-            throw new InvalidOperationException("No valid signed WRN model catalogue is available.");
+            var best = new[]
+                {
+                    current,
+                    previous,
+                    bundled
+                }
+                .Where(delegate(CatalogueLoadResult candidate)
+                {
+                    return candidate != null;
+                })
+                .OrderByDescending(delegate(CatalogueLoadResult candidate)
+                {
+                    return candidate.Catalogue.release;
+                })
+                .FirstOrDefault();
+
+            if (best != null)
+                return best;
+
+            throw new InvalidOperationException(
+                "No valid signed WRN model catalogue is available.");
         }
 
         public CatalogueRefreshResult AcceptCandidate(byte[] bytes, string signatureText)

@@ -65,6 +65,9 @@ internal static class ClaudeTransitionTests
         Directory.CreateDirectory(baseRoot);
 
         TestCompileAndApply(baseRoot, catalogue);
+        TestMissingConfigLibraryRoundTrip(baseRoot, catalogue);
+        TestMissingConfigLibraryInterruptedActivation(baseRoot, catalogue);
+        TestMissingConfigLibraryForeignFileFailsClosed(baseRoot, catalogue);
         TestRollback(baseRoot, catalogue);
         TestStalePreflight(baseRoot, catalogue);
         TestUnsafeSourceBlocked(baseRoot, catalogue);
@@ -177,6 +180,196 @@ internal static class ClaudeTransitionTests
             DesktopBefore = File.ReadAllBytes(paths.DesktopConfigPath),
             MetaBefore = File.ReadAllBytes(paths.MetaPath)
         };
+    }
+
+    private static Fixture CreateMissingConfigLibraryFixture(
+        string baseRoot,
+        string name)
+    {
+        var root = Path.Combine(baseRoot, name);
+        if (Directory.Exists(root))
+            Directory.Delete(root, true);
+
+        var local = Path.Combine(root, "LocalAppData");
+        var roaming = Path.Combine(root, "RoamingAppData");
+        Directory.CreateDirectory(local);
+        Directory.CreateDirectory(roaming);
+
+        var paths = new ClaudePaths(local, roaming);
+        Directory.CreateDirectory(paths.ThirdPartyRoot);
+
+        return new Fixture
+        {
+            Root = root,
+            Paths = paths,
+            DesktopBefore = null,
+            MetaBefore = null
+        };
+    }
+
+    private static void TestMissingConfigLibraryRoundTrip(
+        string baseRoot,
+        CatalogueDocument catalogue)
+    {
+        var fixture = CreateMissingConfigLibraryFixture(
+            baseRoot,
+            "missing-config-library-roundtrip");
+        var stateRoot = Path.Combine(
+            fixture.Root,
+            "transactions");
+
+        var activation = ClaudeActivationCompiler.Compile(
+            HealthyWtw(),
+            fixture.Paths,
+            catalogue,
+            "missing-parent-token",
+            43127);
+
+        Check(
+            "missing configLibrary compiles one owned directory create",
+            activation.DirectoryMutations != null
+            && activation.DirectoryMutations.Length == 1
+            && string.Equals(
+                activation.DirectoryMutations[0].Path,
+                fixture.Paths.ConfigLibraryPath,
+                StringComparison.OrdinalIgnoreCase)
+            && !activation.DirectoryMutations[0].ExpectedExists
+            && activation.DirectoryMutations[0].DesiredExists);
+
+        var applied = ClaudeTransitionExecutor.Execute(
+            activation,
+            stateRoot);
+        Check(
+            "missing configLibrary activation succeeds",
+            applied.Success);
+        Check(
+            "activation creates configLibrary and exactly the WRN config files",
+            Directory.Exists(fixture.Paths.ConfigLibraryPath)
+            && File.Exists(fixture.Paths.DesktopConfigPath)
+            && File.Exists(fixture.Paths.MetaPath)
+            && File.Exists(fixture.Paths.WrnProfilePath));
+
+        var deactivation = ClaudeDeactivationCompiler.Compile(
+            HealthyWrn(),
+            fixture.Paths,
+            stateRoot);
+        Check(
+            "WTW restoration owns removal of WRN-created configLibrary",
+            deactivation.DirectoryMutations != null
+            && deactivation.DirectoryMutations.Length == 1
+            && deactivation.DirectoryMutations[0].ExpectedExists
+            && !deactivation.DirectoryMutations[0].DesiredExists);
+
+        var restored = ClaudeTransitionExecutor.Execute(
+            deactivation,
+            stateRoot);
+        Check(
+            "missing configLibrary round-trip restores WTW baseline",
+            restored.Success
+            && Directory.Exists(fixture.Paths.ThirdPartyRoot)
+            && !Directory.Exists(fixture.Paths.ConfigLibraryPath)
+            && !File.Exists(fixture.Paths.DesktopConfigPath)
+            && !File.Exists(fixture.Paths.MetaPath)
+            && !File.Exists(fixture.Paths.WrnProfilePath)
+            && !File.Exists(
+                ClaudeTransitionState.OwnershipBaselinePath(
+                    stateRoot)));
+    }
+
+    private static void TestMissingConfigLibraryInterruptedActivation(
+        string baseRoot,
+        CatalogueDocument catalogue)
+    {
+        var fixture = CreateMissingConfigLibraryFixture(
+            baseRoot,
+            "missing-config-library-interrupted");
+        var stateRoot = Path.Combine(
+            fixture.Root,
+            "transactions");
+        var activation = ClaudeActivationCompiler.Compile(
+            HealthyWtw(),
+            fixture.Paths,
+            catalogue,
+            "missing-parent-interrupt-token",
+            43127);
+
+        var interrupted =
+            ClaudeTransitionExecutor.ExecuteInterruptedForTest(
+                activation,
+                stateRoot,
+                1);
+        Check(
+            "missing configLibrary interruption publishes recoverable state",
+            interrupted.Status == "TRANSITION_INTERRUPTED_FOR_TEST"
+            && Directory.Exists(fixture.Paths.ConfigLibraryPath));
+
+        var recovery =
+            ClaudeTransitionExecutor.RecoverPending(
+                stateRoot);
+        Check(
+            "missing configLibrary rollback removes WRN-created directory",
+            recovery.RolledBack
+            && !Directory.Exists(fixture.Paths.ConfigLibraryPath)
+            && !File.Exists(fixture.Paths.DesktopConfigPath)
+            && !File.Exists(fixture.Paths.MetaPath)
+            && !File.Exists(fixture.Paths.WrnProfilePath)
+            && !File.Exists(
+                ClaudeTransitionState.OwnershipBaselinePath(
+                    stateRoot)));
+    }
+
+    private static void TestMissingConfigLibraryForeignFileFailsClosed(
+        string baseRoot,
+        CatalogueDocument catalogue)
+    {
+        var fixture = CreateMissingConfigLibraryFixture(
+            baseRoot,
+            "missing-config-library-foreign-file");
+        var stateRoot = Path.Combine(
+            fixture.Root,
+            "transactions");
+        var activation = ClaudeActivationCompiler.Compile(
+            HealthyWtw(),
+            fixture.Paths,
+            catalogue,
+            "missing-parent-foreign-token",
+            43127);
+
+        Check(
+            "foreign-file fixture activates",
+            ClaudeTransitionExecutor.Execute(
+                activation,
+                stateRoot).Success);
+
+        var foreignPath = Path.Combine(
+            fixture.Paths.ConfigLibraryPath,
+            "foreign.json");
+        File.WriteAllText(
+            foreignPath,
+            "{}",
+            new UTF8Encoding(false));
+
+        var deactivation = ClaudeDeactivationCompiler.Compile(
+            HealthyWrn(),
+            fixture.Paths,
+            stateRoot);
+        var result = ClaudeTransitionExecutor.Execute(
+            deactivation,
+            stateRoot);
+
+        Check(
+            "foreign configLibrary content blocks directory deletion and rolls back",
+            !result.Success
+            && result.RolledBack
+            && result.Status == "TRANSITION_ROLLED_BACK"
+            && Directory.Exists(fixture.Paths.ConfigLibraryPath)
+            && File.Exists(foreignPath)
+            && File.Exists(fixture.Paths.DesktopConfigPath)
+            && File.Exists(fixture.Paths.MetaPath)
+            && File.Exists(fixture.Paths.WrnProfilePath)
+            && File.Exists(
+                ClaudeTransitionState.OwnershipBaselinePath(
+                    stateRoot)));
     }
 
     private static void TestCompileAndApply(
@@ -322,6 +515,12 @@ internal static class ClaudeTransitionTests
             "profile bearer auth scheme set",
             Convert.ToString(appliedProfile["inferenceGatewayAuthScheme"])
                 == "bearer");
+        Check(
+            "profile enables chat cowork and code surfaces",
+            Convert.ToBoolean(appliedProfile["chatTabEnabled"])
+            && Convert.ToBoolean(appliedProfile["coworkTabEnabled"])
+            && Convert.ToBoolean(
+                appliedProfile["isClaudeCodeForDesktopEnabled"]));
 
         var appliedModels =
             ReadObjectArray(appliedProfile["inferenceModels"]);

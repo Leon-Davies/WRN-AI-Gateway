@@ -34,6 +34,7 @@ namespace WRN.AIGateway
         private CatalogueLoadResult _catalogueLoad;
         private bool _catalogueRefreshInFlight;
         private bool _credentialOperationInFlight;
+        private bool _claudeLaunchInFlight;
         private bool _appUpdateInFlight;
         private AppUpdateRemoteResult _availableAppUpdate;
         private AppUpdateRemoteResult _stagedAppUpdate;
@@ -132,25 +133,11 @@ namespace WRN.AIGateway
         {
             Find<Button>("WTWLaunchButton").Click += delegate
             {
-                ShowToast("WTW Claude", "WTW launch wiring is not enabled yet.");
+                BeginClaudeLaunch("WTW");
             };
             Find<Button>("WRNLaunchButton").Click += delegate
             {
-                var credential =
-                    OpenRouterCredentialStore.Inspect(_stateRoot);
-                if (!credential.Configured
-                    || !credential.Decryptable)
-                {
-                    ShowPage("Settings");
-                    ShowToast(
-                        "Connect OpenRouter",
-                        "Connect your OpenRouter key before WRN Claude can be enabled on this PC.");
-                    return;
-                }
-
-                ShowToast(
-                    "WRN Claude",
-                    "Your OpenRouter connection is ready. Claude switching remains disabled until managed-Claude qualification is complete.");
+                BeginClaudeLaunch("WRN");
             };
             Find<Button>("ModelsShortcutButton").Click += delegate { ShowPage("Models"); };
             Find<Button>("UpdatesShortcutButton").Click += delegate { ShowPage("Updates"); };
@@ -203,6 +190,468 @@ namespace WRN.AIGateway
                     Environment.NewLine +
                     "Please do not include API keys, passwords, or confidential prompt/file contents.");
             };
+
+            Find<Button>("CollectDiagnosticsButton").Click += delegate
+            {
+                BeginCollectDiagnostics();
+            };
+        }
+
+        private void BeginCollectDiagnostics()
+        {
+            var button =
+                Find<Button>(
+                    "CollectDiagnosticsButton");
+
+            button.IsEnabled = false;
+
+            ShowToast(
+                "Collecting diagnostics",
+                "Creating a privacy-safe WRN support bundle…");
+
+            Task.Run(
+                delegate
+                {
+                    return DiagnosticsBundle.Create(
+                        _baseDir,
+                        _stateRoot);
+                })
+                .ContinueWith(
+                    delegate(Task<DiagnosticsBundleResult> task)
+                    {
+                        _window.Dispatcher.BeginInvoke(
+                            new Action(
+                                delegate
+                                {
+                                    button.IsEnabled = true;
+
+                                    var result =
+                                        task.Status
+                                            == TaskStatus.RanToCompletion
+                                            ? task.Result
+                                            : null;
+
+                                    if (result == null
+                                        || !result.Success
+                                        || string.IsNullOrWhiteSpace(
+                                            result.Path))
+                                    {
+                                        ShowToast(
+                                            "Diagnostics not created",
+                                            "Try again or contact WRN AI support.");
+                                        return;
+                                    }
+
+                                    ShowToast(
+                                        "Diagnostics ready",
+                                        "Saved to Documents > WRN AI Gateway > Diagnostics.");
+
+                                    try
+                                    {
+                                        Process.Start(
+                                            new ProcessStartInfo
+                                            {
+                                                FileName =
+                                                    "explorer.exe",
+                                                Arguments =
+                                                    "/select,\""
+                                                    + result.Path
+                                                    + "\"",
+                                                UseShellExecute =
+                                                    true
+                                            });
+                                    }
+                                    catch
+                                    {
+                                    }
+                                }));
+                    });
+        }
+
+        private sealed class ClaudeLaunchResult
+        {
+            public bool Success { get; set; }
+            public bool OpenSettings { get; set; }
+            public string Title { get; set; }
+            public string Message { get; set; }
+        }
+
+        private void BeginClaudeLaunch(string target)
+        {
+            if (_claudeLaunchInFlight)
+                return;
+
+            var isWrn = string.Equals(
+                target,
+                "WRN",
+                StringComparison.OrdinalIgnoreCase);
+
+            if (isWrn)
+            {
+                var credential =
+                    OpenRouterCredentialStore.Inspect(_stateRoot);
+                if (!credential.Configured
+                    || !credential.Decryptable)
+                {
+                    ShowPage("Settings");
+                    ShowToast(
+                        "Connect OpenRouter",
+                        "Connect OpenRouter, then try again.");
+                    return;
+                }
+            }
+
+            _claudeLaunchInFlight = true;
+            ShowToast(
+                isWrn ? "WRN Claude" : "WTW Claude",
+                "Opening Claude...");
+
+            Task.Run(delegate
+            {
+                return ExecuteClaudeLaunch(
+                    isWrn ? "WRN" : "WTW");
+            }).ContinueWith(
+                delegate(Task<ClaudeLaunchResult> task)
+                {
+                    _window.Dispatcher.BeginInvoke(
+                        new Action(delegate
+                        {
+                            _claudeLaunchInFlight = false;
+
+                            ClaudeLaunchResult result = null;
+                            if (task.Status
+                                == TaskStatus.RanToCompletion)
+                            {
+                                result = task.Result;
+                            }
+
+                            if (result == null)
+                            {
+                                ShowToast(
+                                    "Claude couldn't open",
+                                    "Try again or use WTW Claude.");
+                                return;
+                            }
+
+                            if (result.OpenSettings)
+                                ShowPage("Settings");
+
+                            ShowToast(
+                                result.Title,
+                                result.Message);
+                        }));
+                });
+        }
+
+        private ClaudeLaunchResult ExecuteClaudeLaunch(
+            string target)
+        {
+            try
+            {
+                var isWrn = string.Equals(
+                    target,
+                    "WRN",
+                    StringComparison.OrdinalIgnoreCase);
+                var discovery = ClaudeDiscovery.Inspect();
+
+                if (discovery.ClaudeRunning)
+                {
+                    return LaunchBlocked(
+                        "Close Claude",
+                        "Close Claude, then try again.");
+                }
+
+                if (discovery.InstallKind
+                    != ClaudeInstallKind.ManagedPackage)
+                {
+                    return LaunchBlocked(
+                        "Claude needs attention",
+                        "Use the managed Claude app from Company Portal, then try again.");
+                }
+
+                if (!discovery.ConfigReadable
+                    || discovery.Mode == ClaudeMode.Degraded)
+                {
+                    return LaunchBlocked(
+                        "Claude needs attention",
+                        "Open WTW Claude normally, then try again.");
+                }
+
+                var transitionRoot =
+                    Path.Combine(
+                        _stateRoot,
+                        "transition");
+                var pending =
+                    Directory.Exists(
+                        ClaudeTransitionState
+                            .PendingTransactionPath(
+                                transitionRoot));
+
+                if (pending)
+                {
+                    if (!LiveClaudeSwitchingEnabled())
+                    {
+                        return LaunchBlocked(
+                            "Claude needs attention",
+                            "A previous switch needs recovery before Claude can open.");
+                    }
+
+                    var recovery =
+                        ClaudeTransitionExecutor
+                            .RecoverPending(
+                                transitionRoot);
+                    if (!recovery.Success
+                        && !recovery.RolledBack)
+                    {
+                        return LaunchBlocked(
+                            "Claude needs attention",
+                            "The previous switch could not be recovered.");
+                    }
+
+                    discovery = ClaudeDiscovery.Inspect();
+                }
+
+                if (!isWrn)
+                {
+                    if (discovery.Mode == ClaudeMode.Wtw)
+                    {
+                        GatewayLifecycle.StopOwned(
+                            _baseDir,
+                            _stateRoot);
+                        return LaunchManagedClaude(
+                            "WTW Claude");
+                    }
+
+                    if (discovery.Mode != ClaudeMode.Wrn)
+                    {
+                        return LaunchBlocked(
+                            "Claude needs attention",
+                            "Claude is not in a WRN-managed state that can be restored safely.");
+                    }
+
+                    if (!LiveClaudeSwitchingEnabled())
+                    {
+                        return LaunchBlocked(
+                            "WTW Claude",
+                            "WTW switching is not enabled in this qualification build.");
+                    }
+
+                    if (!GatewayLifecycle.StopOwned(
+                        _baseDir,
+                        _stateRoot))
+                    {
+                        return LaunchBlocked(
+                            "WTW Claude",
+                            "WRN Claude is still closing. Try again.");
+                    }
+
+                    var restorePlan =
+                        ClaudeDeactivationCompiler.Compile(
+                            discovery,
+                            ClaudePaths.Current(),
+                            transitionRoot);
+                    var restored =
+                        ClaudeTransitionExecutor.Execute(
+                            restorePlan,
+                            transitionRoot);
+                    if (!restored.Success)
+                    {
+                        return LaunchBlocked(
+                            "WTW Claude",
+                            "WTW Claude could not be restored safely.");
+                    }
+
+                    var restoredDiscovery =
+                        ClaudeDiscovery.Inspect();
+                    if (restoredDiscovery.Mode
+                        != ClaudeMode.Wtw)
+                    {
+                        return LaunchBlocked(
+                            "WTW Claude",
+                            "WTW Claude could not be verified after switching.");
+                    }
+
+                    return LaunchManagedClaude(
+                        "WTW Claude");
+                }
+
+                if (discovery.Mode == ClaudeMode.Wrn)
+                {
+                    var currentCatalogue =
+                        new CatalogueStore(
+                            _baseDir,
+                            Path.Combine(
+                                _stateRoot,
+                                "catalogue"))
+                        .LoadBestAvailable();
+                    var currentGateway =
+                        GatewayLifecycle.EnsureHealthy(
+                            _baseDir,
+                            _stateRoot,
+                            currentCatalogue.Catalogue.release,
+                            8000);
+                    if (!currentGateway.Healthy)
+                    {
+                        return LaunchBlocked(
+                            "WRN Claude isn't available",
+                            "Try again or use WTW Claude.");
+                    }
+
+                    return LaunchManagedClaude(
+                        "WRN Claude");
+                }
+
+                if (discovery.Mode != ClaudeMode.Wtw)
+                {
+                    return LaunchBlocked(
+                        "Claude needs attention",
+                        "Open WTW Claude normally, then try again.");
+                }
+
+                if (!LiveClaudeSwitchingEnabled())
+                {
+                    return LaunchBlocked(
+                        "WRN Claude",
+                        "WRN Claude is not enabled in this qualification build.");
+                }
+
+                var catalogue =
+                    new CatalogueStore(
+                        _baseDir,
+                        Path.Combine(
+                            _stateRoot,
+                            "catalogue"))
+                    .LoadBestAvailable();
+
+                ModeGatewayConfig gatewayConfig;
+                string gatewayConfigError;
+                ModeCoordinator.ProbeGatewayConfig(
+                    _stateRoot,
+                    out gatewayConfig,
+                    out gatewayConfigError);
+                if (gatewayConfig == null)
+                {
+                    return LaunchBlocked(
+                        "WRN Claude isn't available",
+                        "Reconnect OpenRouter, then try again.",
+                        true);
+                }
+
+                var gateway =
+                    GatewayLifecycle.EnsureHealthy(
+                        _baseDir,
+                        _stateRoot,
+                        catalogue.Catalogue.release,
+                        8000);
+                if (!gateway.Healthy)
+                {
+                    return LaunchBlocked(
+                        "WRN Claude isn't available",
+                        "Try again or use WTW Claude.");
+                }
+
+                var activation =
+                    ClaudeActivationCompiler.Compile(
+                        discovery,
+                        ClaudePaths.Current(),
+                        catalogue.Catalogue,
+                        gatewayConfig.LocalApiKey,
+                        gatewayConfig.Port);
+                var activated =
+                    ClaudeTransitionExecutor.Execute(
+                        activation,
+                        transitionRoot);
+                if (!activated.Success)
+                {
+                    GatewayLifecycle.StopOwned(
+                        _baseDir,
+                        _stateRoot);
+                    return LaunchBlocked(
+                        "WRN Claude isn't available",
+                        "The switch was cancelled safely. Try again or use WTW Claude.");
+                }
+
+                var activatedDiscovery =
+                    ClaudeDiscovery.Inspect();
+                if (activatedDiscovery.Mode
+                    != ClaudeMode.Wrn)
+                {
+                    GatewayLifecycle.StopOwned(
+                        _baseDir,
+                        _stateRoot);
+                    return LaunchBlocked(
+                        "WRN Claude isn't available",
+                        "WRN Claude could not be verified after switching.");
+                }
+
+                return LaunchManagedClaude(
+                    "WRN Claude");
+            }
+            catch
+            {
+                return LaunchBlocked(
+                    "Claude couldn't open",
+                    "Try again or use WTW Claude.");
+            }
+        }
+
+        private static bool LiveClaudeSwitchingEnabled()
+        {
+            return TransitionSafety.LiveClaudeWritesEnabled;
+        }
+
+        private static ClaudeLaunchResult LaunchBlocked(
+            string title,
+            string message)
+        {
+            return LaunchBlocked(
+                title,
+                message,
+                false);
+        }
+
+        private static ClaudeLaunchResult LaunchBlocked(
+            string title,
+            string message,
+            bool openSettings)
+        {
+            return new ClaudeLaunchResult
+            {
+                Success = false,
+                OpenSettings = openSettings,
+                Title = title,
+                Message = message
+            };
+        }
+
+        private static ClaudeLaunchResult LaunchManagedClaude(
+            string modeName)
+        {
+            try
+            {
+                Process.Start(
+                    new ProcessStartInfo
+                    {
+                        FileName = "explorer.exe",
+                        Arguments =
+                            "shell:AppsFolder\\Claude_pzs8sxrjxfjjc!Claude",
+                        UseShellExecute = true
+                    });
+
+                return new ClaudeLaunchResult
+                {
+                    Success = true,
+                    OpenSettings = false,
+                    Title = modeName,
+                    Message = "Claude is opening."
+                };
+            }
+            catch
+            {
+                return LaunchBlocked(
+                    "Claude couldn't open",
+                    "Open Claude from the Start menu and try again.");
+            }
         }
 
         private void InitializeAppUpdateStatus()
@@ -344,7 +793,7 @@ namespace WRN.AIGateway
             {
                 _availableAppUpdate = null;
                 status.Text =
-                    FriendlyAppUpdateMessage(
+                    UserFacingFailureMessages.AppUpdate(
                         result == null
                             ? "UPDATE_CHECK_FAILED"
                             : result.Status);
@@ -450,7 +899,7 @@ namespace WRN.AIGateway
                                     {
                                         _stagedAppUpdate = null;
                                         status.Text =
-                                            FriendlyAppUpdateMessage(
+                                            UserFacingFailureMessages.AppUpdate(
                                                 result == null
                                                     ? "UPDATE_DOWNLOAD_FAILED"
                                                     : result.Status);
@@ -538,7 +987,7 @@ namespace WRN.AIGateway
             if (!activation.Started)
             {
                 status.Text =
-                    FriendlyAppUpdateMessage(
+                    UserFacingFailureMessages.AppUpdate(
                         activation.Status);
                 button.Content =
                     "Install update";
@@ -553,44 +1002,6 @@ namespace WRN.AIGateway
                 "Installing update…";
 
             _window.Close();
-        }
-
-        private static string FriendlyAppUpdateMessage(
-            string status)
-        {
-            var value =
-                status
-                ?? string.Empty;
-
-            if (value == "UPDATE_NETWORK_UNAVAILABLE"
-                || value == "UPDATE_CHECK_FAILED")
-            {
-                return "Couldn't check for updates. Try again.";
-            }
-
-            if (value == "UPDATE_DEFERRED_CLAUDE_RUNNING")
-                return "Close Claude before installing the update.";
-
-            if (value == "UPDATE_DEFERRED_GATEWAY_RUNNING")
-                return "Close WRN Claude and try again.";
-
-            if (value == "UPDATE_DEFERRED_RECOVERY_PENDING")
-                return "WRN AI Gateway needs to finish recovery before updating.";
-
-            if (value.Contains("SIGNATURE")
-                || value.Contains("HASH")
-                || value.Contains("MANIFEST")
-                || value.Contains("IDENTITY")
-                || value.Contains("ARCHIVE")
-                || value.Contains("ROLLBACK"))
-            {
-                return "The update couldn't be verified. Your current version was kept.";
-            }
-
-            if (value.Contains("HELPER"))
-                return "The update couldn't start. Try again.";
-
-            return "The update couldn't be completed. Your current version was kept.";
         }
 
         private void ApplyPersonalisation()

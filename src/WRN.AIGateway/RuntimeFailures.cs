@@ -30,6 +30,63 @@ namespace WRN.AIGateway
         public string AnthropicErrorType { get; set; }
     }
 
+    internal static class UserFacingFailureMessages
+    {
+        public static string AppUpdate(
+            string status)
+        {
+            var value =
+                status
+                ?? string.Empty;
+
+            if (value == "UPDATE_NETWORK_UNAVAILABLE"
+                || value == "UPDATE_CHECK_FAILED")
+            {
+                return "Couldn't check for updates. Try again.";
+            }
+
+            if (value == "UPDATE_DEFERRED_CLAUDE_RUNNING")
+                return "Close Claude before installing the update.";
+
+            if (value == "UPDATE_DEFERRED_GATEWAY_RUNNING")
+                return "Close WRN Claude and try again.";
+
+            if (value == "UPDATE_DEFERRED_RECOVERY_PENDING")
+                return "WRN AI Gateway needs to finish recovery before updating.";
+
+            if (value.IndexOf(
+                    "SIGNATURE",
+                    StringComparison.OrdinalIgnoreCase) >= 0
+                || value.IndexOf(
+                    "HASH",
+                    StringComparison.OrdinalIgnoreCase) >= 0
+                || value.IndexOf(
+                    "MANIFEST",
+                    StringComparison.OrdinalIgnoreCase) >= 0
+                || value.IndexOf(
+                    "IDENTITY",
+                    StringComparison.OrdinalIgnoreCase) >= 0
+                || value.IndexOf(
+                    "ARCHIVE",
+                    StringComparison.OrdinalIgnoreCase) >= 0
+                || value.IndexOf(
+                    "ROLLBACK",
+                    StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return "The update couldn't be verified. Your current version was kept.";
+            }
+
+            if (value.IndexOf(
+                    "HELPER",
+                    StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return "The update couldn't start. Try again.";
+            }
+
+            return "The update couldn't be completed. Your current version was kept.";
+        }
+    }
+
     internal static class RuntimeFailureCatalog
     {
         public static RuntimeFailure FromCredentialStatus(

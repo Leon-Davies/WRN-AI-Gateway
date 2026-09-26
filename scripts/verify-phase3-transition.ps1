@@ -55,8 +55,23 @@ try {
     }
 
     $controllerSource = Get-Content (Join-Path $src "AppController.cs") -Raw
-    if ($controllerSource.Contains("ClaudeTransitionExecutor.Execute")) {
-        throw "Transition executor must not be wired to the user-facing launch buttons yet."
+    foreach ($requiredLaunchPrimitive in @(
+        "BeginClaudeLaunch",
+        "ClaudeTransitionExecutor.Execute",
+        "LaunchManagedClaude",
+        "GatewayLifecycle.EnsureHealthy"
+    )) {
+        if (-not $controllerSource.Contains($requiredLaunchPrimitive)) {
+            throw "Required user-facing launch wiring is missing: $requiredLaunchPrimitive"
+        }
+    }
+    foreach ($forbiddenLaunchPlaceholder in @(
+        "WTW launch wiring is not enabled yet.",
+        "Claude switching remains disabled until managed-Claude qualification is complete."
+    )) {
+        if ($controllerSource.Contains($forbiddenLaunchPlaceholder)) {
+            throw "Obsolete user-facing launch placeholder remains: $forbiddenLaunchPlaceholder"
+        }
     }
 
     foreach ($forbiddenModel in @(
@@ -71,7 +86,7 @@ try {
         }
     }
 
-    Write-Host "PASS: fixture-only WTW -> WRN compiler"
+    Write-Host "PASS: WTW/WRN launch actions are wired behind the hard live-write gate"
     Write-Host "PASS: profile/meta/deployment activation ordering"
     Write-Host "PASS: signed catalogue generates Claude model aliases"
     Write-Host "PASS: stale source preflight rejection"
@@ -82,7 +97,7 @@ try {
     Write-Host "PASS: recovery conflict fails closed"
     Write-Host "PASS: ownership baseline excludes preference/credential snapshots"
     Write-Host "PASS: actual Claude paths hard-disabled"
-    Write-Host "PASS: UI launch buttons remain disconnected"
+    Write-Host "PASS: launch buttons are wired; real writes remain hard-disabled"
     Write-Host "PHASE3_TRANSITION_VERIFY_PASS" -ForegroundColor Green
 }
 finally {

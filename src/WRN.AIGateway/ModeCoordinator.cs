@@ -201,16 +201,57 @@ namespace WRN.AIGateway
 
             report.TransitionPlanCompiled = true;
             report.TransitionPlanKind = compiled.Kind;
-            report.PlannedMutations = compiled.Mutations
-                .Select(delegate(TransitionMutation mutation)
+
+            var directoryMutations =
+                compiled.DirectoryMutations
+                ?? new TransitionDirectoryMutation[0];
+            var directoryCreates = directoryMutations
+                .Where(delegate(TransitionDirectoryMutation mutation)
+                {
+                    return mutation.DesiredExists;
+                });
+            var directoryDeletes = directoryMutations
+                .Where(delegate(TransitionDirectoryMutation mutation)
+                {
+                    return !mutation.DesiredExists;
+                });
+
+            report.PlannedMutations = directoryCreates
+                .Select(delegate(TransitionDirectoryMutation mutation)
                 {
                     return mutation.Purpose;
-                }).ToArray();
-            report.PlannedPaths = compiled.Mutations
-                .Select(delegate(TransitionMutation mutation)
+                })
+                .Concat(
+                    compiled.Mutations.Select(
+                        delegate(TransitionMutation mutation)
+                        {
+                            return mutation.Purpose;
+                        }))
+                .Concat(
+                    directoryDeletes.Select(
+                        delegate(TransitionDirectoryMutation mutation)
+                        {
+                            return mutation.Purpose;
+                        }))
+                .ToArray();
+            report.PlannedPaths = directoryCreates
+                .Select(delegate(TransitionDirectoryMutation mutation)
                 {
                     return mutation.Path;
-                }).ToArray();
+                })
+                .Concat(
+                    compiled.Mutations.Select(
+                        delegate(TransitionMutation mutation)
+                        {
+                            return mutation.Path;
+                        }))
+                .Concat(
+                    directoryDeletes.Select(
+                        delegate(TransitionDirectoryMutation mutation)
+                        {
+                            return mutation.Path;
+                        }))
+                .ToArray();
 
             report.PreflightCompatible = true;
             report.PreflightBlockReason = null;

@@ -76,6 +76,17 @@ foreach ($placeholder in $visiblePlaceholders) {
     }
 }
 
+$controller = Get-Content (Join-Path $src "WRN.AIGateway\AppController.cs") -Raw
+$launchPlaceholders = @(
+    "WTW launch wiring is not enabled yet.",
+    "Claude switching remains disabled until managed-Claude qualification is complete."
+)
+foreach ($placeholder in $launchPlaceholders) {
+    if ($controller.Contains($placeholder)) {
+        throw "Visible launch placeholder found in controller: $placeholder"
+    }
+}
+
 $requiredUi = @(
     "ActionCardButtonStyle",
     "HeroImageA",
