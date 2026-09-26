@@ -189,3 +189,48 @@ Requirements:
 - last-known-good rollback;
 - never update while the launcher/Claude transition is in a critical section;
 - never make an active Claude session restart solely to obtain an update.
+
+## 14. Claude transport route IDs
+
+The catalogue keeps three model identities separate:
+
+- `label`: the user-visible truthful model name;
+- `upstreamModel`: the real OpenRouter model ID;
+- `claudeAlias`: the internal route presented to Claude Desktop.
+
+The internal Claude route is a transport identifier. It must not be used as the user-facing model name.
+
+Claude Desktop 2.9939.2 validates gateway route names against an Anthropic-model naming heuristic. Provider/model-family names such as `deepseek`, `gpt`, `openai`, `qwen`, `gemini`, `mistral`, `llama` and related families can be rejected before a request reaches the WRN gateway.
+
+Therefore:
+
+- keep the visible label truthful;
+- keep the upstream OpenRouter ID truthful;
+- use provider-neutral internal route IDs when a semantic route name would trigger Claude Desktop validation;
+- do not hide or rename the user-visible model to bypass validation.
+
+Example:
+
+```text
+label:         DeepSeek V4.1 Flash
+claudeAlias:   claude-wrn-m004
+upstreamModel: deepseek/deepseek-v4.1-flash
+```
+
+Release 6+ client validation rejects internal route IDs known to be incompatible with the observed Claude Desktop 2.9939.2 validator.
+
+## 15. Catalogue/application compatibility
+
+`minimumAppVersion` is a catalogue protocol compatibility boundary, not cosmetic release metadata.
+
+The current Phase-6 catalogue compatibility version is `0.6.0`.
+
+If a future catalogue requires client behaviour that an older WRN build does not understand:
+
+- publish the catalogue with the appropriate `minimumAppVersion`;
+- old clients retain their last-known-good signed catalogue and report `CATALOGUE_APP_TOO_OLD`;
+- update WRN AI Gateway first;
+- only then promote the newer catalogue.
+
+Routine model additions/changes that stay within the existing catalogue contract continue to require no application reinstall.
+
