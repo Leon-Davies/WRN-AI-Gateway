@@ -118,6 +118,29 @@ internal static class CatalogueRuntimeTests
         Check("same-release tamper rejected before reuse",
             !reuse.Success && reuse.Status == "CATALOGUE_SIGNATURE_INVALID");
 
+        var invalidCurrentDir = Path.Combine(
+            root,
+            "releases",
+            "00000003");
+        Directory.CreateDirectory(invalidCurrentDir);
+        File.WriteAllBytes(
+            Path.Combine(invalidCurrentDir, "catalogue.json"),
+            mutatedV2);
+        File.WriteAllText(
+            Path.Combine(invalidCurrentDir, "catalogue.sig"),
+            v2Signature);
+        File.WriteAllText(
+            Path.Combine(root, "current.txt"),
+            "3");
+        File.WriteAllText(
+            Path.Combine(root, "previous.txt"),
+            "2");
+
+        var lastKnownGood = store.LoadBestAvailable();
+        Check("invalid current falls back to newest valid previous release",
+            lastKnownGood.Catalogue.release == 2
+            && lastKnownGood.Source == "cached-previous");
+
         Console.WriteLine(_failures == 0 ? "ALL_CATALOGUE_TESTS_PASS" : "CATALOGUE_TESTS_FAILED=" + _failures);
         return _failures == 0 ? 0 : 1;
     }
