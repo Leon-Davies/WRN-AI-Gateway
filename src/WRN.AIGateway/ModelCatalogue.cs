@@ -298,19 +298,36 @@ namespace WRN.AIGateway
                 "bundled");
 
             var currentRelease = ReadPointer("current.txt");
-            var current = currentRelease.HasValue ? LoadRelease(currentRelease.Value, "cached-current") : null;
-
-            if (current != null && (bundled == null || current.Catalogue.release >= bundled.Catalogue.release))
-                return current;
-            if (bundled != null)
-                return bundled;
+            var current = currentRelease.HasValue
+                ? LoadRelease(currentRelease.Value, "cached-current")
+                : null;
 
             var previousRelease = ReadPointer("previous.txt");
-            var previous = previousRelease.HasValue ? LoadRelease(previousRelease.Value, "cached-previous") : null;
-            if (previous != null)
-                return previous;
+            var previous = previousRelease.HasValue
+                ? LoadRelease(previousRelease.Value, "cached-previous")
+                : null;
 
-            throw new InvalidOperationException("No valid signed WRN model catalogue is available.");
+            var best = new[]
+                {
+                    current,
+                    previous,
+                    bundled
+                }
+                .Where(delegate(CatalogueLoadResult candidate)
+                {
+                    return candidate != null;
+                })
+                .OrderByDescending(delegate(CatalogueLoadResult candidate)
+                {
+                    return candidate.Catalogue.release;
+                })
+                .FirstOrDefault();
+
+            if (best != null)
+                return best;
+
+            throw new InvalidOperationException(
+                "No valid signed WRN model catalogue is available.");
         }
 
         public CatalogueRefreshResult AcceptCandidate(byte[] bytes, string signatureText)
