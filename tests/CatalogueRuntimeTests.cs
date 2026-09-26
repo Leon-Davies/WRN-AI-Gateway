@@ -80,6 +80,26 @@ internal static class CatalogueRuntimeTests
             "legacy WRN aliases remain accepted during migration",
             CatalogueValidator.Validate(v1, out error));
 
+        var originalRelease = v1.release;
+        var deepSeek = v1.models.First(m =>
+            m.key == "deepseek-v41-flash");
+        var originalDeepSeekAlias = deepSeek.claudeAlias;
+
+        v1.release = 6;
+        deepSeek.claudeAlias = "claude-wrn-deepseek";
+        Check(
+            "release 6 rejects Claude-incompatible provider route names",
+            !CatalogueValidator.Validate(v1, out error)
+            && error == "CATALOGUE_ALIAS_CLAUDE_DESKTOP_INCOMPATIBLE");
+
+        deepSeek.claudeAlias = "claude-wrn-m004";
+        Check(
+            "release 6 accepts provider-neutral opaque route IDs",
+            CatalogueValidator.Validate(v1, out error));
+
+        v1.release = originalRelease;
+        deepSeek.claudeAlias = originalDeepSeekAlias;
+
         var tampered = (byte[])v1Bytes.Clone();
         tampered[tampered.Length / 2] ^= 0x01;
         CatalogueDocument ignored;
