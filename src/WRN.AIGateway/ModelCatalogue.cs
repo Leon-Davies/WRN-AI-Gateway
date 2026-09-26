@@ -222,7 +222,13 @@ namespace WRN.AIGateway
                 if (!upstream.Add(model.upstreamModel))
                     return Fail("CATALOGUE_UPSTREAM_DUPLICATE", out error);
 
-                if (!model.claudeAlias.StartsWith("anthropic/claude-wrn-", StringComparison.OrdinalIgnoreCase))
+                var legacyAlias = model.claudeAlias.StartsWith(
+                    "anthropic/claude-wrn-",
+                    StringComparison.OrdinalIgnoreCase);
+                var desktopCompatibleAlias = model.claudeAlias.StartsWith(
+                    "claude-wrn-",
+                    StringComparison.OrdinalIgnoreCase);
+                if (!legacyAlias && !desktopCompatibleAlias)
                     return Fail("CATALOGUE_ALIAS_INVALID", out error);
 
                 if (!model.zdrRequired)
