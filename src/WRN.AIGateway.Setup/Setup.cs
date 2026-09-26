@@ -40,17 +40,12 @@ namespace WRN.AIGateway.Setup
                 Text = "WRN AI Gateway", ForeColor = Color.White, Font = new Font("Segoe UI", 17F, FontStyle.Bold),
                 AutoSize = true, Left = 76, Top = 23
             });
-            header.Controls.Add(new Label {
-                Text = "Simple model access for Willis Research Network", ForeColor = Color.FromArgb(229, 215, 235),
-                Font = new Font("Segoe UI", 9F), AutoSize = true, Left = 78, Top = 54
-            });
-
             Controls.Add(new Label {
                 Text = "Install WRN AI Gateway", ForeColor = Color.FromArgb(43, 35, 48),
                 Font = new Font("Segoe UI", 14F, FontStyle.Bold), AutoSize = true, Left = 28, Top = 112
             });
             Controls.Add(new Label {
-                Text = "This installs WRN AI Gateway for your Windows account only.\r\nNo administrator rights are required and your Claude history is not changed.",
+                Text = "Install for your Windows account.",
                 ForeColor = Color.FromArgb(96, 87, 101), Font = new Font("Segoe UI", 9.5F),
                 AutoSize = true, Left = 30, Top = 148
             });
@@ -62,7 +57,7 @@ namespace WRN.AIGateway.Setup
             Controls.Add(_progress);
 
             _status = new Label {
-                Text = "Ready to install", ForeColor = Color.FromArgb(117, 107, 121),
+                Text = "Ready", ForeColor = Color.FromArgb(117, 107, 121),
                 AutoSize = true, Left = 30, Top = 230
             };
             Controls.Add(_status);
@@ -111,14 +106,14 @@ namespace WRN.AIGateway.Setup
             if (running.Length > 0)
                 throw new InvalidOperationException("WRN AI Gateway is currently open. Close it, then click Install again.");
 
-            _status.Text = "Preparing installation...";
+            _status.Text = "Preparing...";
             _progress.Value = 15;
             Application.DoEvents();
             Directory.CreateDirectory(installRoot);
             if (hasExternalPayload) CopyDirectory(source, staging);
             else ExtractEmbeddedPayload(staging);
 
-            _status.Text = "Installing application...";
+            _status.Text = "Installing...";
             _progress.Value = 55;
             Application.DoEvents();
 
@@ -127,13 +122,13 @@ namespace WRN.AIGateway.Setup
             if (Directory.Exists(current)) Directory.Move(current, previous);
             Directory.Move(staging, current);
 
-            _status.Text = "Creating shortcuts...";
+            _status.Text = "Finishing...";
             _progress.Value = 80;
             Application.DoEvents();
             CreateShortcuts(Path.Combine(current, "WRN-AI-Gateway.exe"));
 
             _progress.Value = 100;
-            _status.Text = "Installed successfully";
+            _status.Text = "Installed";
             _installButton.Text = "Open";
             _installButton.Enabled = true;
             _installButton.Click -= InstallButtonClick;
