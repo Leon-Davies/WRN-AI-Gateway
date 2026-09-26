@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
-    "release":  4,
-    "publishedAt":  "2026-09-25T14:29:59.2628116+01:00",
+    "release":  5,
+    "publishedAt":  "2026-09-26T10:10:23.7964572+01:00",
     "minimumAppVersion":  "0.2.0",
     "defaultModelKey":  "gpt6-luna",
     "benchmarkSnapshot":  "2026-09-25",
@@ -13,7 +13,7 @@
                        "label":  "GPT-6 Luna",
                        "maker":  "OpenAI",
                        "upstreamModel":  "openai/gpt-6-luna",
-                       "claudeAlias":  "anthropic/claude-wrn-luna",
+                       "claudeAlias":  "claude-wrn-luna",
                        "visible":  true,
                        "recommended":  true,
                        "status":  "candidate",
@@ -46,7 +46,7 @@
                        "label":  "Claude Opus 5.5",
                        "maker":  "Anthropic",
                        "upstreamModel":  "anthropic/claude-opus-5.5",
-                       "claudeAlias":  "anthropic/claude-wrn-opus",
+                       "claudeAlias":  "claude-wrn-opus",
                        "visible":  true,
                        "recommended":  false,
                        "status":  "candidate",
@@ -79,7 +79,7 @@
                        "label":  "GPT-6 Astra",
                        "maker":  "OpenAI",
                        "upstreamModel":  "openai/gpt-6-astra",
-                       "claudeAlias":  "anthropic/claude-wrn-astra",
+                       "claudeAlias":  "claude-wrn-astra",
                        "visible":  true,
                        "recommended":  false,
                        "status":  "candidate",
@@ -112,7 +112,7 @@
                        "label":  "DeepSeek V4.1 Flash",
                        "maker":  "DeepSeek",
                        "upstreamModel":  "deepseek/deepseek-v4.1-flash",
-                       "claudeAlias":  "anthropic/claude-wrn-deepseek",
+                       "claudeAlias":  "claude-wrn-deepseek",
                        "visible":  true,
                        "recommended":  false,
                        "status":  "candidate",
@@ -142,6 +142,11 @@
                    }
                ],
     "changelog":  [
+                      {
+                          "date":  "2026-09-26",
+                          "title":  "Claude Desktop model compatibility",
+                          "body":  "Updated WRN model aliases for current Claude Desktop compatibility."
+                      },
                       {
                           "date":  "2026-09-25",
                           "title":  "Model shortlist refreshed",
