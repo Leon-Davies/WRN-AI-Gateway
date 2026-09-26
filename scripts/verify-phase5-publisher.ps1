@@ -113,7 +113,9 @@ foreach ($requiredPublisher in @(
     "app-update-beta",
     "remoteVerified",
     "WRN_APP_UPDATE_PUBLISH_SUCCESS",
-    "Public artifact local WRN hero assets: 0"
+    "Public artifact local WRN hero assets: 0",
+    "TargetRelease",
+    "TargetRelease must be greater than the currently published release"
 )) {
     if (-not $publisherSource.Contains($requiredPublisher)) {
         throw "App publisher safety primitive is missing: $requiredPublisher"
