@@ -88,8 +88,14 @@ try {
     }
 
     $controller = Get-Content (Join-Path $src "AppController.cs") -Raw
-    if ($controller.Contains("ModeCoordinator") -or $controller.Contains("ClaudeTransitionExecutor.Execute")) {
-        throw "Mode coordinator/transition execution must not be wired to user-facing launch buttons yet."
+    foreach ($requiredLaunchPrimitive in @(
+        "BeginClaudeLaunch",
+        "ClaudeTransitionExecutor.Execute",
+        "GatewayLifecycle.EnsureHealthy"
+    )) {
+        if (-not $controller.Contains($requiredLaunchPrimitive)) {
+            throw "User-facing mode launch wiring is incomplete: $requiredLaunchPrimitive"
+        }
     }
 
     $coordinator = Get-Content (Join-Path $src "ModeCoordinator.cs") -Raw
@@ -107,7 +113,7 @@ try {
     Write-Host "PASS: pending recovery blocks planning and is recoverable"
     Write-Host "PASS: current-machine preflight is read-only"
     Write-Host "PASS: live execution remains hard-disabled"
-    Write-Host "PASS: launch buttons remain disconnected"
+    Write-Host "PASS: launch buttons are wired behind the hard live-write gate"
     Write-Host "PHASE3_COORDINATOR_VERIFY_PASS" -ForegroundColor Green
 }
 finally {
