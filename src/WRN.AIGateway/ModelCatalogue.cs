@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 
 namespace WRN.AIGateway
@@ -175,6 +176,12 @@ namespace WRN.AIGateway
 
     internal static class CatalogueValidator
     {
+        private static readonly Regex ClaudeDesktopRejectedRoutePattern =
+            new Regex(
+                @"ark-code|astron|command-r|deepseek|doubao|gemini|gemma|glm|gpt|grok|hermes|hy3|kimi|lfm|\bling\b|llama|longcat|mimo|minimax|mistral|mixtral|moonshot|nemotron|openai|phi-|qianfan|qwen|tc-code|\bunic\b|yi-|stepfun|step-3|seed-|bytedance|hunyuan|granite|amazon\.nova|nova-|devstral|ministral|ernie|codex|arcee|trinity|abab|phi\d|\bk2\.|\bm2\.|jamba|arctic|solar|mercury|zamba|kat-coder|\bds-|dpsk",
+                RegexOptions.IgnoreCase
+                | RegexOptions.CultureInvariant);
+
         public static bool Validate(CatalogueDocument catalogue, out string error)
         {
             error = null;
@@ -230,6 +237,15 @@ namespace WRN.AIGateway
                     StringComparison.OrdinalIgnoreCase);
                 if (!legacyAlias && !desktopCompatibleAlias)
                     return Fail("CATALOGUE_ALIAS_INVALID", out error);
+
+                if (catalogue.release >= 6
+                    && ClaudeDesktopRejectedRoutePattern.IsMatch(
+                        model.claudeAlias))
+                {
+                    return Fail(
+                        "CATALOGUE_ALIAS_CLAUDE_DESKTOP_INCOMPATIBLE",
+                        out error);
+                }
 
                 if (!model.zdrRequired)
                     return Fail("CATALOGUE_ZDR_REQUIRED_FALSE", out error);
