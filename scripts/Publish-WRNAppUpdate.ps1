@@ -325,7 +325,7 @@ Invoke-Git @("-C", $publisherRepoGit, "push", "origin", $branch) | Out-Null
 
 $remoteManifest = Join-Path $previewDir "remote-release.json"
 $remoteSignature = Join-Path $previewDir "remote-release.sig"
-$remoteArtifact = Join-Path $previewDir "remote-" + $artifactName
+$remoteArtifact = Join-Path $previewDir ("remote-" + $artifactName)
 $remoteVerified = $false
 
 for ($attempt = 1; $attempt -le 10; $attempt++) {
