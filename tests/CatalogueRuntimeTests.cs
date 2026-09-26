@@ -97,6 +97,19 @@ internal static class CatalogueRuntimeTests
             "release 6 accepts provider-neutral opaque route IDs",
             CatalogueValidator.Validate(v1, out error));
 
+        var originalMinimumAppVersion = v1.minimumAppVersion;
+        v1.minimumAppVersion = "0.6.0";
+        Check(
+            "phase 6 catalogue compatibility version accepted",
+            CatalogueValidator.Validate(v1, out error));
+
+        v1.minimumAppVersion = "0.6.1";
+        Check(
+            "future catalogue compatibility version rejected",
+            !CatalogueValidator.Validate(v1, out error)
+            && error == "CATALOGUE_APP_TOO_OLD");
+
+        v1.minimumAppVersion = originalMinimumAppVersion;
         v1.release = originalRelease;
         deepSeek.claudeAlias = originalDeepSeekAlias;
 
