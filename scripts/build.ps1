@@ -1,5 +1,6 @@
 param(
-    [switch]$Run
+    [switch]$Run,
+    [string]$BrandAssetDirectory = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -32,19 +33,35 @@ Copy-Item (Join-Path $src "ui\MainWindow.xaml") (Join-Path $uiOut "MainWindow.xa
 Copy-Item (Join-Path $src "catalogue\catalogue.json") (Join-Path $catalogueOut "catalogue.json")
 Copy-Item (Join-Path $src "catalogue\catalogue.sig") (Join-Path $catalogueOut "catalogue.sig")
 
-$localAssetDir = Join-Path $src "local-assets"
+$brandCandidates = @()
+if (-not [string]::IsNullOrWhiteSpace($BrandAssetDirectory)) {
+    $brandCandidates += $BrandAssetDirectory
+}
+if (-not [string]::IsNullOrWhiteSpace($env:WRN_BRAND_ASSET_DIR)) {
+    $brandCandidates += $env:WRN_BRAND_ASSET_DIR
+}
+$brandCandidates += (Join-Path $env:LOCALAPPDATA "WRN-AI-Gateway-Publisher\branding")
+$brandCandidates += (Join-Path $src "local-assets")
+
 $localHeroes = @()
-if (Test-Path $localAssetDir) {
-    $localHeroes = @(Get-ChildItem $localAssetDir -Filter "wrn-hero*.png" -File | Sort-Object Name)
+$selectedBrandDir = $null
+foreach ($candidate in $brandCandidates) {
+    if ([string]::IsNullOrWhiteSpace($candidate) -or -not (Test-Path $candidate)) { continue }
+    $candidateHeroes = @(Get-ChildItem $candidate -Filter "wrn-hero*.png" -File | Sort-Object Name)
+    if ($candidateHeroes.Count -gt 0) {
+        $selectedBrandDir = $candidate
+        $localHeroes = $candidateHeroes
+        break
+    }
 }
 
 if ($localHeroes.Count -gt 0) {
     foreach ($hero in $localHeroes) {
         Copy-Item $hero.FullName (Join-Path $assetOut $hero.Name)
     }
-    Write-Host ("Using {0} local WRN branding assets (not tracked by git)." -f $localHeroes.Count) -ForegroundColor DarkMagenta
+    Write-Host ("Using {0} WRN branding assets from {1}." -f $localHeroes.Count, $selectedBrandDir) -ForegroundColor DarkMagenta
 } else {
-    Write-Host "No local brand images found; the built-in gradient fallback will be used." -ForegroundColor DarkYellow
+    Write-Host "No WRN hero images found; the built-in gradient fallback will be used." -ForegroundColor DarkYellow
 }
 
 $references = @(
