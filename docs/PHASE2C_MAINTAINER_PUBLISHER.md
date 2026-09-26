@@ -53,7 +53,7 @@ It checks:
 
 The resulting report contains no API key.
 
-Gateway mapping remains pending until the production gateway is integrated in Phase 3. Cowork remains pending until the clean managed-Claude release qualification gate.
+Gateway mapping and live Claude/OpenRouter inference are qualified in Phase 6. Physical managed-Cowork qualification remains pending.
 
 ## Security boundary
 
@@ -116,3 +116,63 @@ Each successful/attempted publish appends local audit metadata under:
 %LOCALAPPDATA%\WRN-AI-Gateway-Maintainer\publication-audit.jsonl
 
 The audit includes release, commit, catalogue SHA-256, remote-verification status, visible model names and any models requiring fresh qualification. It contains no private signing key or OpenRouter key.
+
+## Provider-neutral route qualification — 26 September 2026
+
+Claude Desktop 2.9939.2 rejected `claude-wrn-deepseek` from `inferenceModels` with a configuration warning and removed DeepSeek from the picker.
+
+An owner-only qualification changed only the internal route identity:
+
+```text
+DeepSeek V4.1 Flash
+claude-wrn-deepseek -> claude-wrn-m004
+deepseek/deepseek-v4.1-flash unchanged
+```
+
+Observed result:
+
+- no Claude configuration-warning banner;
+- DeepSeek V4.1 Flash remained truthfully labelled in the model picker;
+- DeepSeek selection succeeded;
+- Claude UI inference returned successfully;
+- gateway mapped `claude-wrn-m004` to `deepseek/deepseek-v4.1-flash`;
+- upstream HTTP status = 200;
+- prompt/response/API credentials were absent from gateway logs;
+- WTW restoration returned to the original clean baseline.
+
+Signed catalogue release 6 published this single model-field migration.
+
+Published commit:
+
+`5d3368263be028ec181f5ba26b0546f0f290f818`
+
+An ordinary current client promoted 5 -> 6 without reinstalling the application.
+
+## Compatibility-version qualification — 26 September 2026
+
+Development qualification exposed that older pre-migration clients and current clients were both advertising catalogue compatibility `0.2.0`.
+
+The Phase-6 compatibility version is now `0.6.0`.
+
+Signed release 7 changed only:
+
+```text
+minimumAppVersion: 0.2.0 -> 0.6.0
+```
+
+The model array was identical to release 6.
+
+The first publication attempt pushed the Git commit but the raw distribution endpoint did not verify within the publisher's bounded retry window, so the publisher correctly refused to announce success. Post-propagation verification then confirmed:
+
+- release = 7;
+- minimumAppVersion = 0.6.0;
+- remote SHA-256 matched the signed candidate;
+- RSA signature verified.
+
+Observed client behaviour:
+
+- old client `0.2.0`: `CATALOGUE_APP_TOO_OLD`, last-known-good retained;
+- current client `0.6.0`: release 7 accepted/promoted.
+
+This is the intended contract for future catalogue changes that require a newer WRN application.
+
