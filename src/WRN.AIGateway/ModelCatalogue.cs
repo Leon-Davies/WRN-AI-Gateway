@@ -89,7 +89,7 @@ namespace WRN.AIGateway
     internal static class CatalogueTrust
     {
         public const int SupportedSchemaVersion = 1;
-        public static readonly Version AppVersion = new Version(0, 2, 0);
+        public static readonly Version AppVersion = new Version(0, 6, 0);
 
         public const string PublicKeyXml =
             "<RSAKeyValue><Modulus>uLH0GnXRTXazZ00EViCD7sqlWKavj3ikbsbnjz66cgSgvlAJ7kBrj5LiXYHxmo4APiIFGmMF3jOhrP1jwboOIk7SV/U2tpth/4ughGKFf3UbOfojyfU3/lVQTKj76c+8l30HSc48+CjsPA+rFFGSJhJEcvVW0PpCnDWuE+sEqgCjWqW1RF+1eFAhsQTxN9ZK1jtk5OtglanFuqSjZTRiv35kCQMtaDRg+wzY+Fz6Q9qLf/kbiwCPjMYq9fsCC3m7d6UXd2BY18TIBfLBrInfJo8kRp7KPboG7KeUcfjKIGORPJUJpj7grrx+d6Ki+gXTxPFdgJO5pfB8y7GO/JVtGMrQ532T9WT5mkEF/zcjsM5T37rtrj6ehSDgc+r/hQvBNkVl/7qkQ4x6dk8URdoH0+YiyZWVaejvS9hwjYGB2OGahq7qmFqIyXcR4RIEVykp+13PDVmgnGtY48j4/ruEFPJxPVkihIuMmcZdT2dC1WBJYWum3G8mqhj9IhJ9cP1Z</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>";
