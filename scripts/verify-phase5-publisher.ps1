@@ -127,6 +127,10 @@ if ($publisherSource.Contains("ExportCspBlob($true)") -or
     throw "App publisher must not serialize private signing material."
 }
 
+if ($publisherSource.Contains('Join-Path $previewDir "remote-" + $artifactName')) {
+    throw "App publisher remote artifact path must parenthesize concatenation."
+}
+
 Write-Host ""
 Write-Host "PASS: preview-first app release publisher"
 Write-Host "PASS: DPAPI signing key matches embedded client trust root"
