@@ -97,7 +97,7 @@ try {
     Write-Host "PASS: recovery conflict fails closed"
     Write-Host "PASS: ownership baseline excludes preference/credential snapshots"
     Write-Host "PASS: actual Claude paths hard-disabled"
-    Write-Host "PASS: UI launch buttons remain disconnected"
+    Write-Host "PASS: launch buttons are wired; real writes remain hard-disabled"
     Write-Host "PHASE3_TRANSITION_VERIFY_PASS" -ForegroundColor Green
 }
 finally {
