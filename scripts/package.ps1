@@ -1,6 +1,8 @@
 param(
     [string]$Version = "0.1.0-dev",
-    [int]$AppRelease = 0
+    [int]$AppRelease = 0,
+    [string]$BrandAssetDirectory = "",
+    [switch]$RequireBranding
 )
 $ErrorActionPreference = "Stop"
 
@@ -10,7 +12,18 @@ $releaseRoot = Join-Path $root "release"
 $release = Join-Path $releaseRoot ("WRN-AI-Gateway-v" + $Version)
 $appDir = Join-Path $release "app"
 
-& (Join-Path $PSScriptRoot "build.ps1")
+if ([string]::IsNullOrWhiteSpace($BrandAssetDirectory)) {
+    & (Join-Path $PSScriptRoot "build.ps1")
+} else {
+    & (Join-Path $PSScriptRoot "build.ps1") -BrandAssetDirectory $BrandAssetDirectory
+}
+
+if ($RequireBranding) {
+    $heroes = @(Get-ChildItem (Join-Path $dist "assets") -Filter "wrn-hero*.png" -File -ErrorAction SilentlyContinue)
+    if ($heroes.Count -eq 0) {
+        throw "Required WRN hero images were not included in the build."
+    }
+}
 
 if (Test-Path $release) { Remove-Item $release -Recurse -Force }
 New-Item -ItemType Directory -Path $appDir -Force | Out-Null
@@ -64,10 +77,7 @@ $readme = @(
     "",
     "1. Double-click WRN-AI-Gateway-Setup.exe",
     "2. Click Install",
-    "3. Open WRN AI Gateway from the desktop or Start menu.",
-    "",
-    "No administrator rights are required.",
-    "Your normal Claude history is not changed by the launcher installation."
+    "3. Open WRN AI Gateway."
 )
 $readme | Set-Content (Join-Path $release "README-FIRST.txt") -Encoding UTF8
 $Version | Set-Content (Join-Path $release "VERSION.txt") -Encoding ASCII
@@ -81,6 +91,11 @@ $hashTargets = @(
     (Join-Path $appDir "ui\MainWindow.xaml"),
     (Join-Path $appDir "catalogue\catalogue.json"),
     (Join-Path $appDir "catalogue\catalogue.sig")
+)
+$hashTargets += @(
+    Get-ChildItem (Join-Path $appDir "assets") -Filter "wrn-hero*.png" -File -ErrorAction SilentlyContinue |
+        Sort-Object Name |
+        Select-Object -ExpandProperty FullName
 )
 $hashLines = foreach ($target in $hashTargets) {
     $hash = Get-FileHash $target -Algorithm SHA256
