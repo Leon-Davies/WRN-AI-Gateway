@@ -76,7 +76,7 @@ catch {
 if (-not $failedAsExpected) {
     throw "Trusted-release packaging did not fail closed when the signing identity was unavailable."
 }
-if (Test-Path $negativeRelease -or Test-Path $negativeZip) {
+if ((Test-Path $negativeRelease) -or (Test-Path $negativeZip)) {
     throw "Trusted-release signing preflight created release output before certificate validation."
 }
 
