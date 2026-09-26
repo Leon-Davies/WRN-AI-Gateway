@@ -1,11 +1,11 @@
 {
     "schemaVersion":  1,
-    "release":  7,
-    "version":  "0.6.0-beta.2",
-    "publishedAt":  "2026-09-26T11:49:05.2830381+01:00",
-    "artifactUrl":  "https://raw.githubusercontent.com/Leon-Davies/WRN-AI-Gateway/app-update-beta/updates/artifacts/release-00000007.zip",
-    "artifactSha256":  "d778c91aff09383edbdcbef8369bd0434f3cb72b95f44e48c289a71b90bdde59",
-    "artifactSize":  114753,
+    "release":  8,
+    "version":  "0.6.0-beta.3",
+    "publishedAt":  "2026-09-26T15:12:06.3538753+01:00",
+    "artifactUrl":  "https://raw.githubusercontent.com/Leon-Davies/WRN-AI-Gateway/app-update-beta/updates/artifacts/release-00000008.zip",
+    "artifactSha256":  "1a0628e320a18e3a2bc0b082196da3af164c5e4490e6a7b7684467107bbc343c",
+    "artifactSize":  114758,
     "title":  "WRN AI Gateway beta update",
-    "notes":  "Improves model compatibility, catalogue reliability, and Phase 6 qualification safeguards."
+    "notes":  "Exercises the complete standard-user update flow and includes publisher reliability fixes."
 }
