@@ -389,7 +389,7 @@ namespace WRN.AIGateway
 
                 if (pending)
                 {
-                    if (!TransitionSafety.LiveClaudeWritesEnabled)
+                    if (!LiveClaudeSwitchingEnabled())
                     {
                         return LaunchBlocked(
                             "Claude needs attention",
@@ -429,7 +429,7 @@ namespace WRN.AIGateway
                             "Claude is not in a WRN-managed state that can be restored safely.");
                     }
 
-                    if (!TransitionSafety.LiveClaudeWritesEnabled)
+                    if (!LiveClaudeSwitchingEnabled())
                     {
                         return LaunchBlocked(
                             "WTW Claude",
@@ -508,7 +508,7 @@ namespace WRN.AIGateway
                         "Open WTW Claude normally, then try again.");
                 }
 
-                if (!TransitionSafety.LiveClaudeWritesEnabled)
+                if (!LiveClaudeSwitchingEnabled())
                 {
                     return LaunchBlocked(
                         "WRN Claude",
@@ -593,6 +593,11 @@ namespace WRN.AIGateway
                     "Claude couldn't open",
                     "Try again or use WTW Claude.");
             }
+        }
+
+        private static bool LiveClaudeSwitchingEnabled()
+        {
+            return TransitionSafety.LiveClaudeWritesEnabled;
         }
 
         private static ClaudeLaunchResult LaunchBlocked(
